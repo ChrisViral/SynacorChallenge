@@ -11,10 +11,16 @@
     <Configurations>Release;Debug</Configurations>
     <Platforms>x64</Platforms>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Title>Synacor</Title>
+    <Authors>Christophe Savard</Authors>
+    <Owner>ChrisViral</Owner>
+    <Description>Synacore Challenge implementation in C#</Description>
+    <Copyright>Copyright © 2026 Christophe Savard</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\x64\Debug\Synacor.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
@@ -30,6 +36,7 @@
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageReference Include="JetBrains.ExternalAnnotations" Version="10.2.169" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
 
 </Project>

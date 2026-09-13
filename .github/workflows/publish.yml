@@ -1,0 +1,79 @@
+# .github/workflows/publish.yml
+
+name: Build and Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to publish
+        required: true
+        type: string
+
+      dry_run:
+        description: Skip publishing the packages
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    name: Package and publish build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+          source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+
+      - name: Verify tag exists
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git fetch --tags
+          git rev-parse "refs/tags/${{ inputs.tag }}" >/dev/null 2>&1 || {
+            echo "Tag '${{ inputs.tag }}' does not exist."
+            exit 1
+          }
+
+      - name: Extract version from tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "VERSION=${TAG#v}" >> $GITHUB_ENV
+
+      - name: Restore dependencies
+        run: dotnet restore ./Synacor.CLI/Synacor.CLI.csproj
+
+      - name: Pack
+        run: |
+          dotnet pack ./Synacor.CLI/Synacor.CLI.csproj \
+            --configuration Release \
+            --no-restore \
+            --no-incremental \
+            --WarnAsError
+            /p:PackageVersion=${{ env.VERSION }} \
+            --output ./nupkgs
+
+      - name: Push to GitHub Packages
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          dotnet nuget push ./nupkgs/Synacor.CLI*.nupkg \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --api-key ${{ secrets.GITHUB_TOKEN }}
