@@ -1,13 +1,30 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Runtime.InteropServices;
+using JetBrains.Annotations;
+using Microsoft.Extensions.Logging;
+using Synacor.Data;
 
 namespace Synacor;
 
 /// <summary>
 /// Virtual Machine implementation
 /// </summary>
-public class VirtualMachine
+[PublicAPI]
+public sealed partial class VirtualMachine : IDisposable
 {
-    private readonly FileInfo data;
+    private const int MAX_VALUE = short.MaxValue;
+    private const int MODULO = MAX_VALUE + 1;
+
+    private const int MEMORY_SIZE = MAX_VALUE + 1;
+    private const int REGISTER_COUNT = 8;
+    private const int BUFFER_SIZE = MEMORY_SIZE + REGISTER_COUNT;
+
+    private Memory memory;
+    private unsafe ushort* ip;
+
+    /// <summary>
+    /// If this <see cref="VirtualMachine"/> has been disposed
+    /// </summary>
+    public bool IsDisposed { get; private set; }
 
     /// <summary>
     /// Logger instance
@@ -15,21 +32,93 @@ public class VirtualMachine
     private ILogger Logger { get; }
 
     /// <summary>
-    /// Creates a new Virtual Machine
+    /// Creates a new <see cref="VirtualMachine"/>
     /// </summary>
-    /// <param name="data">VM Data file</param>
     /// <param name="logger">Logger instance</param>
-    /// <exception cref="ArgumentException">If <paramref name="data"/> does not exist</exception>
-    public VirtualMachine(FileInfo data, ILogger<VirtualMachine> logger)
+    public unsafe VirtualMachine(ILogger<VirtualMachine> logger)
     {
-        if (!data.Exists) throw new ArgumentException("Data file does not exist", nameof(data));
-
-        this.data = data;
         this.Logger = logger;
+
+        this.memory = new Memory(BUFFER_SIZE);
+        this.ip = this.memory.Buffer;
     }
 
     /// <summary>
-    /// Hello, World!
+    /// Deallocates unmanaged memory before being collected
     /// </summary>
-    public void SayHello() => this.Logger.LogInformation("Hello, World!\nData file: {Path}", this.data.FullName);
+    ~VirtualMachine() => ReleaseUnmanagedResources();
+
+    /// <summary>
+    /// Loads the binary data file into the <see cref="VirtualMachine"/>'s memory
+    /// </summary>
+    /// <param name="file">File to load</param>
+    /// <param name="token">Cancellation token</param>
+    /// <exception cref="ObjectDisposedException">If this <see cref="VirtualMachine"/> has been disposed</exception>
+    /// <exception cref="FileNotFoundException">If the <paramref name="file"/> to load doesn't exist</exception>
+    /// <exception cref="ArgumentException">If the <paramref name="file"/> is too large to fit into the <see cref="VirtualMachine"/>'s memory</exception>
+    public async Task LoadFile(FileInfo file, CancellationToken token = default)
+    {
+        ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+        if (!file.Exists) throw new FileNotFoundException("Data file to load does not exist", file.FullName);
+        if (file.Length > MEMORY_SIZE * sizeof(ushort)) throw new ArgumentException("File size too large for Virtual Machine memory", nameof(file));
+
+        // Get memory view
+        this.Logger.LogInformation("Loading data file into Virtual Machine memory...");
+        int length = (int)file.Length;
+        using MemoryView<byte> view = new(this.memory, 0, length);
+
+        // Load data
+        LogLoadFileSize(this.Logger, length);
+        await using FileStream stream = file.OpenRead();
+        await stream.ReadExactlyAsync(view.Memory, token).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Loads data into the V<see cref="VirtualMachine"/>'s memory from a given data span
+    /// </summary>
+    /// <param name="data">Data to load</param>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="data"/> is too large to fit into the <see cref="VirtualMachine"/>'s memory</exception>
+    public void LoadData(ReadOnlySpan<ushort> data)
+    {
+        ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(data.Length, MEMORY_SIZE, nameof(data));
+
+        data.CopyTo(this.memory.GetSpan());
+    }
+
+    /// <summary>
+    /// Loads data into the <see cref="VirtualMachine"/>'s memory from a given span
+    /// </summary>
+    /// <param name="data">Data to load</param>
+    /// <typeparam name="T">Incoming data type</typeparam>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="data"/> is too large to fit into the <see cref="VirtualMachine"/>'s memory</exception>
+    public void LoadData<T>(ReadOnlySpan<T> data) where T : unmanaged
+    {
+        ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+
+        ReadOnlySpan<ushort> castedData = MemoryMarshal.Cast<T, ushort>(data);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(castedData.Length, MEMORY_SIZE, nameof(data));
+
+        castedData.CopyTo(this.memory.GetSpan());
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (this.IsDisposed) return;
+
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        this.IsDisposed = true;
+    }
+
+    /// <summary>
+    /// Deallocates unmanaged memory
+    /// </summary>
+    private unsafe void ReleaseUnmanagedResources()
+    {
+        ((IDisposable)this.memory).Dispose();
+        this.memory = null!;
+        this.ip = null;
+    }
 }

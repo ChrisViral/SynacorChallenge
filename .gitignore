@@ -56,6 +56,9 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
-# Custom ignores
+# User files
+*.DotSettings.user
 *.cmdlineargs.json
+
+# Claude files
 .claude/

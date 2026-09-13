@@ -26,8 +26,18 @@ public class SynacorCommand(ILoggerFactory factory) : ICliRunAsyncWithContextAnd
     /// <inheritdoc />
     public async Task<int> RunAsync(CliContext cliContext)
     {
-        VirtualMachine vm = new(this.Data, this.factory.CreateLogger<VirtualMachine>());
-        vm.SayHello();
+        this.Logger.LogInformation("Creating virtual machine...");
+        try
+        {
+            using VirtualMachine vm = new(this.factory.CreateLogger<VirtualMachine>());
+            await vm.LoadFile(this.Data, cliContext.CancellationToken);
+        }
+        catch (Exception e)
+        {
+            this.Logger.LogError(e, "Exception occured while runing the Virtual Machine, exiting...");
+            return 1;
+        }
+
         return 0;
     }
 }
