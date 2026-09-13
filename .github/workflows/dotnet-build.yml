@@ -29,4 +29,6 @@ jobs:
         run: |
           dotnet build \
             --configuration Release \
-            --no-restore
+            --no-restore \
+            --no-incremental \
+            --WarnAsError
