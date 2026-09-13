@@ -4,6 +4,22 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synacor", "Synacor\Synacor.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synacor.CLI", "Synacor.CLI\Synacor.CLI.csproj", "{A896FBB5-886E-4549-8310-2899516209D4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Actions", "{2376E251-0999-4B3C-8AC0-13776391A13F}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\dotnet-build.yml = .github\workflows\dotnet-build.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Challenge", "Challenge", "{218A1957-3561-40E0-BDD0-20EFAC023C81}"
+	ProjectSection(SolutionItems) = preProject
+		Challenge\Requirements.md = Challenge\Requirements.md
+		Challenge\hashes.txt = Challenge\hashes.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Project", "Project", "{E569944B-D60E-4532-A38A-E060B0C9B60F}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|x64 = Release|x64
