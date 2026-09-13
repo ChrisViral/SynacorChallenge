@@ -31,6 +31,8 @@ public class SynacorCommand(ILoggerFactory factory) : ICliRunAsyncWithContextAnd
         {
             using VirtualMachine vm = new(this.factory.CreateLogger<VirtualMachine>());
             await vm.LoadFile(this.Data, cliContext.CancellationToken);
+
+
         }
         catch (Exception e)
         {

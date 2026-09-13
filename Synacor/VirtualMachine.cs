@@ -11,15 +11,26 @@ namespace Synacor;
 [PublicAPI]
 public sealed partial class VirtualMachine : IDisposable
 {
+    /// <summary>
+    /// Max numerical value
+    /// </summary>
     private const int MAX_VALUE = short.MaxValue;
-    private const int MODULO = MAX_VALUE + 1;
-
+    /// <summary>
+    /// Memory size, in values
+    /// </summary>
     private const int MEMORY_SIZE = MAX_VALUE + 1;
+    /// <summary>
+    /// Amount of registers
+    /// </summary>
     private const int REGISTER_COUNT = 8;
+    /// <summary>
+    /// Total buffer size, in values
+    /// </summary>
     private const int BUFFER_SIZE = MEMORY_SIZE + REGISTER_COUNT;
 
     private Memory memory;
     private unsafe ushort* ip;
+    private bool hasData;
 
     /// <summary>
     /// If this <see cref="VirtualMachine"/> has been disposed
@@ -67,23 +78,39 @@ public sealed partial class VirtualMachine : IDisposable
         int length = (int)file.Length;
         using MemoryView<byte> view = new(this.memory, 0, length);
 
+        // Clear the data if there is any
+        if (this.hasData)
+        {
+            Reset();
+        }
+
         // Load data
         LogLoadFileSize(this.Logger, length);
         await using FileStream stream = file.OpenRead();
         await stream.ReadExactlyAsync(view.Memory, token).ConfigureAwait(false);
+        this.hasData = true;
     }
 
     /// <summary>
     /// Loads data into the V<see cref="VirtualMachine"/>'s memory from a given data span
     /// </summary>
     /// <param name="data">Data to load</param>
+    /// <exception cref="ObjectDisposedException">If this <see cref="VirtualMachine"/> has been disposed</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="data"/> is too large to fit into the <see cref="VirtualMachine"/>'s memory</exception>
     public void LoadData(ReadOnlySpan<ushort> data)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(data.Length, MEMORY_SIZE, nameof(data));
 
+        // Clear the data if there is any
+        if (this.hasData)
+        {
+            Reset();
+        }
+
+        // Copy data to memory
         data.CopyTo(this.memory.GetSpan());
+        this.hasData = true;
     }
 
     /// <summary>
@@ -91,15 +118,42 @@ public sealed partial class VirtualMachine : IDisposable
     /// </summary>
     /// <param name="data">Data to load</param>
     /// <typeparam name="T">Incoming data type</typeparam>
+    /// <exception cref="ObjectDisposedException">If this <see cref="VirtualMachine"/> has been disposed</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="data"/> is too large to fit into the <see cref="VirtualMachine"/>'s memory</exception>
     public void LoadData<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
+        // Cast incoming data to ushort
         ReadOnlySpan<ushort> castedData = MemoryMarshal.Cast<T, ushort>(data);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(castedData.Length, MEMORY_SIZE, nameof(data));
 
+        // Clear the data if there is any
+        if (this.hasData)
+        {
+            Reset();
+        }
+
+        // Copy data to memory
         castedData.CopyTo(this.memory.GetSpan());
+        this.hasData = true;
+    }
+
+    /// <summary>
+    /// Resets this <see cref="VirtualMachine"/> to it's default state
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">If this <see cref="VirtualMachine"/> has been disposed</exception>
+    public unsafe void Reset()
+    {
+        ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+
+        // Reset instruction pointer
+        this.ip = this.memory.Buffer;
+        if (!this.hasData) return;
+
+        // Clear memory
+        this.memory.Clear();
+        this.hasData = false;
     }
 
     /// <inheritdoc />

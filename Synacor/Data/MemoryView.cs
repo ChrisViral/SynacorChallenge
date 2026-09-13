@@ -22,7 +22,7 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
     {
         this.memory = memory;
         this.pointer = (T*)memory.Buffer;
-        this.length = memory.ByteLength / sizeof(T);
+        this.length = (int)memory.ByteLength / sizeof(T);
     }
 
     /// <summary>
@@ -38,9 +38,9 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
     public MemoryView(Memory memory, int offset, int length)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(offset, memory.ByteLength / sizeof(T));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(offset, (int)memory.ByteLength / sizeof(T));
         ArgumentOutOfRangeException.ThrowIfNegative(length);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(length, (memory.ByteLength / sizeof(T)) - offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(length, ((int)memory.ByteLength / sizeof(T)) - offset);
 
         this.memory = memory;
         this.pointer = (T*)memory.Buffer + offset;

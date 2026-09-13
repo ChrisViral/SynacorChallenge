@@ -18,7 +18,7 @@ public sealed unsafe class Memory : MemoryManager<ushort>
     /// <summary>
     /// Memory block length in bytes
     /// </summary>
-    public int ByteLength { get; private set; }
+    public nuint ByteLength { get; private set; }
 
     /// <summary>
     /// Buffer start address
@@ -44,13 +44,13 @@ public sealed unsafe class Memory : MemoryManager<ushort>
     /// </summary>
     /// <param name="length">Length of the memory block to create</param>
     /// <exception cref="ArgumentOutOfRangeException">If the length is less than zero</exception>
-    public Memory(int length)
+    public Memory(nuint length)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
-        this.Length     = length;
+        this.Length     = (int)length;
         this.ByteLength = length * sizeof(ushort);
-        this.Buffer     = (ushort*)NativeMemory.AllocZeroed((nuint)this.ByteLength);
+        this.Buffer     = (ushort*)NativeMemory.AllocZeroed(this.ByteLength);
     }
 
     /// <inheritdoc />
@@ -77,6 +77,17 @@ public sealed unsafe class Memory : MemoryManager<ushort>
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If this <see cref="Memory"/> has been disposed</exception>
     public override void Unpin() => ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+
+    /// <summary>
+    /// Zeroes the entirety of this <see cref="Memory"/> block
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">If this <see cref="Memory"/> has been disposed</exception>
+    public void Clear()
+    {
+        ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+
+        NativeMemory.Clear(this.Buffer, this.ByteLength);
+    }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)

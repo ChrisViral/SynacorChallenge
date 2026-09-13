@@ -32,6 +32,10 @@
     <DocumentationFile>bin\x64\Release\Synacor.CLI.xml</DocumentationFile>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <DocumentationFile>bin\x64\Debug\Synacor.CLI.xml</DocumentationFile>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" '$(CI)' == 'true' ">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
