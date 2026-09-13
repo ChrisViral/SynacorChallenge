@@ -16,7 +16,6 @@ on:
 
       dry_run:
         description: Skip publishing the packages
-        required: true
         type: boolean
         default: false
 
@@ -63,12 +62,19 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ./Synacor.CLI/Synacor.CLI.csproj
 
+      - name: Build
+        run: |
+          dotnet build ./Synacor.CLI/Synacor.CLI.csproj \
+            --configuration Release \
+            --no-restore \
+            --WarnAsError
+
       - name: Pack
         run: |
           dotnet pack ./Synacor.CLI/Synacor.CLI.csproj \
             --configuration Release \
             --no-restore \
-            --WarnAsError \
+            --no-build \
             /p:PackageVersion=${{ env.VERSION }} \
             --output ./nupkgs
 
