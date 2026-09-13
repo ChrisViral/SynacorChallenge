@@ -8,10 +8,26 @@
     <Nullable>enable</Nullable>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Properties\Synacor.CLI.snk</AssemblyOriginatorKeyFile>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
     <Configurations>Release;Debug</Configurations>
     <Platforms>x64</Platforms>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <Version>0.1.0</Version>
+    <Title>Synacor CLI</Title>
+    <Authors>Christophe Savard</Authors>
+    <Owner>ChrisViral</Owner>
+    <Description>Synacore Challenge implementation in C#</Description>
+    <Copyright>Copyright © 2026 Christophe Savard</Copyright>
+    <RepositoryUrl>https://github.com/ChrisViral/SynacorChallenge</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>Synacor,VM,Virtual Machine</PackageTags>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>synacor</ToolCommandName>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
@@ -28,8 +44,26 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotMake.CommandLine" Version="3.7.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageReference Include="JetBrains.ExternalAnnotations" Version="10.2.169" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog" Version="4.4.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\Challenge\challenge.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>Data\challenge.bin</Link>
+    </None>
   </ItemGroup>
 
 </Project>
