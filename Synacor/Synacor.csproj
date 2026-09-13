@@ -10,6 +10,7 @@
     <AssemblyOriginatorKeyFile>Properties\Synacor.snk</AssemblyOriginatorKeyFile>
     <Configurations>Release;Debug</Configurations>
     <Platforms>x64</Platforms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Title>Synacor</Title>
     <Authors>Christophe Savard</Authors>
@@ -19,12 +20,10 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\x64\Debug\Synacor.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugSymbols>true</DebugSymbols>
     <DocumentationFile>bin\x64\Release\Synacor.xml</DocumentationFile>
   </PropertyGroup>
