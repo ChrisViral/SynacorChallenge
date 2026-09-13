@@ -68,8 +68,7 @@ jobs:
           dotnet pack ./Synacor.CLI/Synacor.CLI.csproj \
             --configuration Release \
             --no-restore \
-            --no-incremental \
-            --WarnAsError
+            --WarnAsError \
             /p:PackageVersion=${{ env.VERSION }} \
             --output ./nupkgs
 
