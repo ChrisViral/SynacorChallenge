@@ -11,8 +11,6 @@
     <Configurations>Release;Debug</Configurations>
     <Platforms>x64</Platforms>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <AssemblyVersion>0.1.0</AssemblyVersion>
-    <FileVersion>0.1.0</FileVersion>
     <Title>Synacor</Title>
     <Authors>Christophe Savard</Authors>
     <Owner>ChrisViral</Owner>

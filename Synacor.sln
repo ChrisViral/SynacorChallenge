@@ -7,6 +7,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Actions", "{2376E251-0999-4B3C-8AC0-13776391A13F}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\dotnet-build.yml = .github\workflows\dotnet-build.yml
+		.github\workflows\publish.yml = .github\workflows\publish.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Challenge", "Challenge", "{218A1957-3561-40E0-BDD0-20EFAC023C81}"
