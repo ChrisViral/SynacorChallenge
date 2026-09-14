@@ -1,13 +1,15 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
+using Synacor.Data.DebugViews;
 
 namespace Synacor.Data;
 
 /// <summary>
 /// <see cref="VirtualMachine"/> unmanaged memory block manager
 /// </summary>
-[PublicAPI]
+[PublicAPI, DebuggerDisplay("Size = {Length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView))]
 public sealed unsafe class MemoryManager : MemoryManager<Value>
 {
     /// <summary>
