@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Synacor.Data;
+using Value = Synacor.Data.Value;
 
 namespace Synacor.Tests;
 
@@ -28,15 +29,15 @@ public sealed class StackTests
         using Stack stack = new();
         stack.Count.Should().Be(0);
         stack.IsEmpty.Should().BeTrue();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
             stack.Count.Should().Be(i);
         }
 
         stack.IsEmpty.Should().BeFalse();
-        ushort* pointer = stack.top;
-        for (ushort i = VALUES; i > 0; i--)
+        Value* pointer = stack.top;
+        for (Value i = VALUES; i > 0; i--)
         {
             pointer--;
             (*pointer).Should().Be(i);
@@ -47,14 +48,14 @@ public sealed class StackTests
     public void Pop_ReturnsPushedValues()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
 
-        for (ushort i = VALUES; i > 0; i--)
+        for (Value i = VALUES; i > 0; i--)
         {
-            ushort value = stack.Pop();
+            Value value = stack.Pop();
             value.Should().Be(i);
         }
 
@@ -65,14 +66,14 @@ public sealed class StackTests
     public void TryPop_ReturnsPushedValues()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
 
-        for (ushort i = VALUES; i > 0; i--)
+        for (Value i = VALUES; i > 0; i--)
         {
-            bool result = stack.TryPop(out ushort value);
+            bool result = stack.TryPop(out Value value);
             result.Should().BeTrue();
             value.Should().Be(i);
         }
@@ -84,7 +85,7 @@ public sealed class StackTests
     public void Peek_ReturnsTopElement()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
             stack.Peek().Should().Be(i);
@@ -95,10 +96,10 @@ public sealed class StackTests
     public void TryPeek_ReturnsTopElement()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
-            bool result = stack.TryPeek(out ushort value);
+            bool result = stack.TryPeek(out Value value);
             result.Should().BeTrue();
             value.Should().Be(i);
         }
@@ -131,17 +132,17 @@ public sealed class StackTests
     public void Contains_MatchesExistingItemsOnly()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
 
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Contains(i).Should().BeTrue();
         }
 
-        for (ushort i = VALUES + 1; i <= VALUES * 2; i++)
+        for (Value i = VALUES + 1; i <= VALUES * 2; i++)
         {
             stack.Contains(i).Should().BeFalse();
         }
@@ -151,17 +152,17 @@ public sealed class StackTests
     public void CopyTo_CopiesValuesLIFO()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
 
-        Span<ushort> values = stackalloc ushort[VALUES];
+        Span<Value> values = stackalloc Value[VALUES];
         stack.CopyTo(values);
 
         for (int i = 0; i < VALUES; i++)
         {
-            values[i].Should().Be((ushort)(VALUES - i));
+            values[i].Should().Be(VALUES - i);
             values[i].Should().Be(stack.Pop());
         }
     }
@@ -170,17 +171,17 @@ public sealed class StackTests
     public void ToArray_CopiesValuesLIFO()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
 
         // ReSharper disable once UseCollectionExpression
-        ushort[] values = stack.ToArray();
+        Value[] values = stack.ToArray();
 
         for (int i = 0; i < VALUES; i++)
         {
-            values[i].Should().Be((ushort)(VALUES - i));
+            values[i].Should().Be(VALUES - i);
             values[i].Should().Be(stack.Pop());
         }
     }
@@ -242,7 +243,7 @@ public sealed class StackTests
         const ushort CAPACITY = 200;
         const ushort NINETY = (CAPACITY * 9) / 10;
         using Stack stack = new(CAPACITY);
-        for (ushort i = 1; i <= CAPACITY; i++)
+        for (Value i = 1; i <= CAPACITY; i++)
         {
             stack.Push(i);
         }
@@ -264,7 +265,7 @@ public sealed class StackTests
     public void Clear_EmptiesStack()
     {
         using Stack stack = new();
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
@@ -278,7 +279,7 @@ public sealed class StackTests
     public void Clear_ResetsCapacity()
     {
         using Stack stack = new(Stack.MIN_CAPACITY * 2);
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
@@ -291,13 +292,13 @@ public sealed class StackTests
     public void RefEnumerator_EnumeratesLIFO()
     {
         using Stack stack = new(Stack.MIN_CAPACITY * 2);
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
 
-        ushort expectedValue = VALUES;
-        foreach (ushort value in stack)
+        Value expectedValue = VALUES;
+        foreach (Value value in stack)
         {
             value.Should().Be(expectedValue);
             expectedValue--;
@@ -308,14 +309,14 @@ public sealed class StackTests
     public void Enumerator_EnumeratesLIFO()
     {
         using Stack stack = new(Stack.MIN_CAPACITY * 2);
-        for (ushort i = 1; i <= VALUES; i++)
+        for (Value i = 1; i <= VALUES; i++)
         {
             stack.Push(i);
         }
 
-        ushort expectedValue = VALUES;
-        IEnumerable<ushort> enumerable = stack;
-        foreach (ushort value in enumerable)
+        Value expectedValue = VALUES;
+        IEnumerable<Value> enumerable = stack;
+        foreach (Value value in enumerable)
         {
             value.Should().Be(expectedValue);
             expectedValue--;
@@ -327,13 +328,13 @@ public sealed class StackTests
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
         stack.Capacity.Should().Be(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY; i++)
         {
             stack.Push(i);
             stack.Capacity.Should().Be(Stack.MIN_CAPACITY);
         }
 
-        stack.Push((ushort)(stack.Count + 1));
+        stack.Push(stack.Count + 1);
         stack.Capacity.Should().Be(Stack.MIN_CAPACITY * Stack.GROW_FACTOR);
         stack.Count.Should().Be(Stack.MIN_CAPACITY + 1);
     }
@@ -342,13 +343,13 @@ public sealed class StackTests
     public void Push_KeepsDataAfterGrow()
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
         {
             stack.Push(i);
         }
 
-        ushort expected = Stack.MIN_CAPACITY + 1;
-        foreach (ushort value in stack)
+        Value expected = Stack.MIN_CAPACITY + 1;
+        foreach (Value value in stack)
         {
             value.Should().Be(expected);
             expected--;
@@ -359,7 +360,7 @@ public sealed class StackTests
     public void Pop_ShrinksWhenAllowed()
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
         {
             stack.Push(i);
         }
@@ -380,7 +381,7 @@ public sealed class StackTests
     public void Pop_DoesNotShrinkWhenNotAllowed()
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
         {
             stack.Push(i);
         }
@@ -397,7 +398,7 @@ public sealed class StackTests
     public void Pop_KeepsDataAfterShrink()
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
         {
             stack.Push(i);
         }
@@ -412,8 +413,8 @@ public sealed class StackTests
         stack.Pop();
         stack.Capacity.Should().Be(newCapacity / Stack.GROW_FACTOR);
 
-        ushort expectedValue = (ushort)shrinkCount;
-        foreach (ushort value in stack)
+        Value expectedValue = shrinkCount;
+        foreach (Value value in stack)
         {
             value.Should().Be(expectedValue);
             expectedValue--;
@@ -424,7 +425,7 @@ public sealed class StackTests
     public void TryPop_ShrinksWhenAllowed()
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
         {
             stack.Push(i);
         }
@@ -445,7 +446,7 @@ public sealed class StackTests
     public void TryPop_DoesNotShrinkWhenNotAllowed()
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
         {
             stack.Push(i);
         }
@@ -462,7 +463,7 @@ public sealed class StackTests
     public void TryPop_KeepsDataAfterShrink()
     {
         using Stack stack = new(Stack.MIN_CAPACITY);
-        for (ushort i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
+        for (Value i = 1; i <= Stack.MIN_CAPACITY + 1; i++)
         {
             stack.Push(i);
         }
@@ -477,8 +478,8 @@ public sealed class StackTests
         stack.TryPop(out _);
         stack.Capacity.Should().Be(newCapacity / Stack.GROW_FACTOR);
 
-        ushort expectedValue = (ushort)shrinkCount;
-        foreach (ushort value in stack)
+        Value expectedValue = shrinkCount;
+        foreach (Value value in stack)
         {
             value.Should().Be(expectedValue);
             expectedValue--;

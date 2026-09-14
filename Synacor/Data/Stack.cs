@@ -10,7 +10,7 @@ namespace Synacor.Data;
 /// Unmanaged memory resizable stack
 /// </summary>
 [PublicAPI, DebuggerDisplay("Count = {Count}"), DebuggerTypeProxy(typeof(StackDebugView))]
-public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
+public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
 {
     /// <summary>
     /// Default and minimum <see cref="Stack"/> size
@@ -21,8 +21,8 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// </summary>
     internal const int GROW_FACTOR = 2;
 
-    internal ushort* stack;
-    internal ushort* top;
+    internal Value* stack;
+    internal Value* top;
     private int version;
 
     /// <summary>
@@ -44,7 +44,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
             if (!this.IsDisposed)
             {
                 int count = this.Count;
-                this.stack = (ushort*)NativeMemory.Realloc(this.stack, (nuint)value);
+                this.stack = (Value*)NativeMemory.Realloc(this.stack, (nuint)value * Value.SIZE);
                 this.top = this.stack + count;
                 this.version++;
             }
@@ -91,7 +91,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
 
         this.Capacity = Math.Max(capacity, MIN_CAPACITY);
-        this.stack = (ushort*)NativeMemory.Alloc((nuint)capacity * sizeof(ushort));
+        this.stack = (Value*)NativeMemory.Alloc((nuint)capacity * Value.SIZE);
         this.top   = this.stack;
     }
 
@@ -105,7 +105,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// </summary>
     /// <param name="item">Item to push</param>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
-    public void Push(ushort item)
+    public void Push(Value item)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
@@ -127,7 +127,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <returns>The popped item</returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
     /// <exception cref="InvalidOperationException">If the <see cref="Stack"/> is empty</exception>
-    public ushort Pop(bool allowShrink = true)
+    public Value Pop(bool allowShrink = true)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
         if (this.IsEmpty) throw new InvalidOperationException("Stack is empty, cannot pop a value");
@@ -149,7 +149,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <param name="allowShrink">If the <see cref="Stack"/> should be allowed to shrink after the value is popped</param>
     /// <returns><see langword="true"/> if the <see cref="Stack"/> was popped, othwerise <see langword="false"/></returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
-    public bool TryPop(out ushort item, bool allowShrink = true)
+    public bool TryPop(out Value item, bool allowShrink = true)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
@@ -177,7 +177,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <returns>The peeked item</returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
     /// <exception cref="InvalidOperationException">If the <see cref="Stack"/> is empty</exception>
-    public ushort Peek()
+    public Value Peek()
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
         if (this.IsEmpty) throw new InvalidOperationException("Stack is empty, cannot peek top value");
@@ -191,7 +191,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <param name="item">Peeked item if successful</param>
     /// <returns><see langword="true"/> if the <see cref="Stack"/> was popped, othwerise <see langword="false"/></returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
-    public bool TryPeek(out ushort item)
+    public bool TryPeek(out Value item)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
@@ -211,11 +211,11 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <param name="item">Item to find</param>
     /// <returns><see langword="true"/> if <paramref name="item"/> was found in this <see cref="Stack"/>, otherwise <see langword="false"/></returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
-    public bool Contains(ushort item)
+    public bool Contains(Value item)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
-        for (ushort* pointer = this.top; pointer != this.stack; /* pointer-- */)
+        for (Value* pointer = this.top; pointer != this.stack; /* pointer-- */)
         {
             pointer--;
             if (*pointer == item)
@@ -233,12 +233,12 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <param name="destination">Destination span to copy to</param>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
     /// <exception cref="ArgumentException">If <paramref name="destination"/> is too small to copy this <see cref="Stack"/>'s data into</exception>
-    public void CopyTo(Span<ushort> destination)
+    public void CopyTo(Span<Value> destination)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
         if (destination.Length < this.Count) throw new ArgumentException("Destination span too short to copy this stack", nameof(destination));
 
-        ushort* pointer = this.top;
+        Value* pointer = this.top;
         for (int i = 0; pointer != this.stack; i++)
         {
             pointer--;
@@ -251,12 +251,12 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// </summary>
     /// <returns>A new array containing a copy of this <see cref="Stack"/></returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
-    public ushort[] ToArray()
+    public Value[] ToArray()
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
-        ushort[] array = new ushort[this.Count];
-        ushort* pointer = this.top;
+        Value[] array = new Value[this.Count];
+        Value* pointer = this.top;
         for (int i = 0; pointer != this.stack; i++)
         {
             pointer--;
@@ -388,7 +388,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     }
 
     /// <inheritdoc />
-    IEnumerator<ushort> IEnumerable<ushort>.GetEnumerator() => new StackEnumerator(this);
+    IEnumerator<Value> IEnumerable<Value>.GetEnumerator() => new StackEnumerator(this);
 
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => new StackEnumerator(this);
@@ -402,10 +402,10 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     {
         private readonly Stack stack = stack;
         private readonly int version = stack.version;
-        private ushort* pointer;
+        private Value* pointer;
 
         /// <inheritdoc cref="IEnumerator{T}.Current" />
-        public ushort Current { get; private set; }
+        public Value Current { get; private set; }
 
         /// <inheritdoc cref="IEnumerator.MoveNext" />
         /// <exception cref="ObjectDisposedException">If the <see cref="Stack"/> this enumerates has been disposed</exception>
@@ -431,14 +431,14 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <see cref="Stack"/> enumerator
     /// </summary>
     /// <param name="stack">Stack to enumerate</param>
-    public sealed class StackEnumerator(Stack stack) : IEnumerator<ushort>
+    public sealed class StackEnumerator(Stack stack) : IEnumerator<Value>
     {
         private readonly Stack stack = stack;
         private readonly int version = stack.version;
-        private ushort* pointer = stack.top;
+        private Value* pointer = stack.top;
 
         /// <inheritdoc />
-        public ushort Current { get; private set; }
+        public Value Current { get; private set; }
 
         /// <inheritdoc />
         /// <exception cref="ObjectDisposedException">If the <see cref="Stack"/> this enumerates has been disposed</exception>

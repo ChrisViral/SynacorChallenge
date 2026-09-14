@@ -7,5 +7,5 @@ internal sealed class StackDebugView(Stack stack)
     private readonly Stack stack = stack;
 
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public ushort[] Items => [..this.stack];
+    public Value[] Items => [..this.stack];
 }

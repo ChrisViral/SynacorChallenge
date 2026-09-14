@@ -13,6 +13,10 @@ namespace Synacor.Data;
 public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IMinMaxValue<Value>, IConvertible
 {
     /// <summary>
+    /// The size of <see cref="Value"/> in bytes
+    /// </summary>
+    public const int SIZE = sizeof(ushort);
+    /// <summary>
     /// The maximum numerical value stored in a <see cref="Value"/>
     /// </summary>
     public const ushort MAX_VALUE = (ushort)short.MaxValue;
@@ -78,6 +82,10 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
         this.value = value;
     }
+
+
+    // === Instance Methods ===
+
 
     /// <inheritdoc />
     public bool Equals(Value other) => this.value == other.value;
@@ -155,7 +163,9 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         }
     }
 
+
     // === Static Methods ===
+
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
@@ -272,7 +282,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     public static bool IsEvenInteger(Value value) => value.IsNumber && ushort.IsEvenInteger(value.value);
 
     /// <inheritdoc />
-    public static bool IsOddInteger(Value value) => value.IsNumber && ushort.IsOddInteger(value);
+    public static bool IsOddInteger(Value value) => value.IsNumber && ushort.IsOddInteger(value.value);
 
     /// <inheritdoc />
     public static bool IsPow2(Value value) => value.IsNumber && ushort.IsPow2(value.value);
@@ -343,7 +353,9 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         return result;
     }
 
+
     // === Casting Operators ===
+
 
     /// <summary>
     /// Implicit conversion from <see cref="Value"/> to <see cref="ushort"/>
@@ -368,7 +380,9 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="value"/> is greater than <see cref="MAX_REGISTER"/></exception>
     public static implicit operator Value(int value) => new((ushort)value);
 
-    // === Operators ===
+
+    // === Mathematical Operators ===
+
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
@@ -394,7 +408,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return (value + 1) & MASK;
+        return (value.value + 1) & MASK;
     }
 
     /// <inheritdoc />
@@ -403,7 +417,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return (value - 1) & MASK;
+        return (value.value - 1) & MASK;
     }
 
     /// <inheritdoc />
@@ -455,6 +469,10 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
         return left.value % right.value;
     }
+
+
+    // === Bitwise Operators ===
+
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
@@ -522,6 +540,10 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         return value.value >>> shiftAmount;
     }
 
+
+    // === Relational Operators ===
+
+
     /// <inheritdoc />
     public static bool operator ==(Value left, Value right) => left.value == right.value;
 
@@ -540,7 +562,9 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <inheritdoc />
     public static bool operator <=(Value left, Value right) => left.value <= right.value;
 
+
     // === Explicit Interface Implementations ===
+
 
     /// <inheritdoc />
     static Value INumberBase<Value>.Zero { get; } = 0;
@@ -583,19 +607,19 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
+    /// <exception cref="ArgumentException">If <paramref name="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteBigEndian(byte[] destination) => BinaryPrimitives.TryWriteUInt16BigEndian(destination, this.value)
                                                                         ? sizeof(ushort)
                                                                         : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
+    /// <exception cref="ArgumentException">If <paramref name="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteBigEndian(byte[] destination, int startIndex) => BinaryPrimitives.TryWriteUInt16BigEndian(destination.AsSpan(startIndex), this.value)
                                                                                         ? sizeof(ushort)
                                                                                         : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
+    /// <exception cref="ArgumentException">If <paramref name="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteBigEndian(Span<byte> destination) => BinaryPrimitives.TryWriteUInt16BigEndian(destination, this.value)
                                                                             ? sizeof(ushort)
                                                                             : throw new ArgumentException("Destination too short", nameof(destination));
@@ -614,19 +638,19 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
+    /// <exception cref="ArgumentException">If <paramref name="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteLittleEndian(byte[] destination) => BinaryPrimitives.TryWriteUInt16LittleEndian(destination, this.value)
                                                                         ? sizeof(ushort)
                                                                         : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
+    /// <exception cref="ArgumentException">If <paramref name="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteLittleEndian(byte[] destination, int startIndex) => BinaryPrimitives.TryWriteUInt16LittleEndian(destination.AsSpan(startIndex), this.value)
                                                                                            ? sizeof(ushort)
                                                                                            : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
+    /// <exception cref="ArgumentException">If <paramref name="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteLittleEndian(Span<byte> destination) => BinaryPrimitives.TryWriteUInt16LittleEndian(destination, this.value)
                                                                                ? sizeof(ushort)
                                                                                : throw new ArgumentException("Destination too short", nameof(destination));
