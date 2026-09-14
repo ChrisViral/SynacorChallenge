@@ -15,7 +15,7 @@
     <Title>Synacor</Title>
     <Authors>Christophe Savard</Authors>
     <Owner>ChrisViral</Owner>
-    <Description>Synacore Challenge implementation in C#</Description>
+    <Description>Synacor Challenge implementation in C#</Description>
     <Copyright>Copyright © 2026 Christophe Savard</Copyright>
   </PropertyGroup>
 
@@ -36,6 +36,10 @@
     <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageReference Include="JetBrains.ExternalAnnotations" Version="10.2.169" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Synacor.Tests, PublicKey=002400000480000014010000060200000024000052534131000800000100010017750dc0c47496a45e7b25ae477d3562e030cac4c7ff93f81d3622e53d0c6dc69824ecb783567d67a277c9f7c5daa122f8c9bd49cf8a313e3ada3cd3a0379fe3e8b0e831e8a88be7c6ea54515cd491289191bd2742a9b3a1821b703d4d8856c44efcb1abea3bd7af3f330495ca138f31dc34cf509ba5ac22fb881a31e0ddcfee228d138dca533f36c59c6a53fc20f094fdf4cd17dc6b81f6544931d9d9746061b479a2dc348138f984e384569336d8931771f7fc64bf46fed17db448501852b07dd8f102ec80c6a1cd34932943047e155f2ac83de01042b98fa79dfc2376665d2918fc22c961084a4a64a1a0bcf9a954c6e08b3466aae411a0014ee3482554be" />
   </ItemGroup>
 
 </Project>
