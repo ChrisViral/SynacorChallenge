@@ -1,5 +1,4 @@
 ﻿using System.Buffers.Binary;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
@@ -26,9 +25,13 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// </summary>
     public const ushort MAX_REGISTER = MAX_VALUE + REGISTER_COUNT;
     /// <summary>
-    /// Mathematical operation modulo value
+    /// Bit count of the numerical values
     /// </summary>
-    private const ushort MODULO = MAX_VALUE + 1;
+    private const int BIT_COUNT = sizeof(ushort) - 1;
+    /// <summary>
+    /// Mathematical operation mask (modulo 32768 equivalent)
+    /// </summary>
+    private const int MASK = 0x7FFF;
 
     /// <summary>
     /// Contained numerical value
@@ -43,7 +46,21 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <summary>
     /// If this <see cref="Value"/> contains a register address
     /// </summary>
-    public bool IsRegister => this.value is > MAX_VALUE and <= MAX_REGISTER;
+    public bool IsRegister => this.value >= MAX_VALUE;
+
+    /// <summary>
+    /// The register address of this <see cref="Value"/>
+    /// </summary>
+    /// <exception cref="InvalidOperationException">If this <see cref="Value"/> represents a number</exception>
+    public int RegisterAddres
+    {
+        get
+        {
+            ThrowIfNumber();
+
+            return this.value - MAX_VALUE;
+        }
+    }
 
     /// <summary>
     /// Register address character for this <see cref="Value"/>
@@ -114,18 +131,46 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <inheritdoc />
     public TypeCode GetTypeCode() => this.value.GetTypeCode();
 
+    /// <summary>
+    /// Ensures this <see cref="Value"/> is not a numerical value
+    /// </summary>
+    /// <exception cref="InvalidOperationException">When <see cref="IsNumber"/> is <see langword="true"/></exception>
+    public void ThrowIfNumber()
+    {
+        if (this.IsNumber)
+        {
+            throw new InvalidOperationException("This operation is not valid on numerical values");
+        }
+    }
+
+    /// <summary>
+    /// Ensures this <see cref="Value"/> is not a register address
+    /// </summary>
+    /// <exception cref="InvalidOperationException">When <see cref="IsRegister"/> is <see langword="true"/></exception>
+    public void ThrowIfRegister()
+    {
+        if (this.IsRegister)
+        {
+            throw new InvalidOperationException("This operation is not valid on register values");
+        }
+    }
+
     // === Static Methods ===
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
     public static Value Parse(string s, IFormatProvider? provider) => ushort.Parse(s, provider);
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
     public static Value Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => ushort.Parse(s, provider);
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
     public static Value Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider) => ushort.Parse(s, style, provider);
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
     public static Value Parse(string s, NumberStyles style, IFormatProvider? provider) => ushort.Parse(s, style, provider);
 
     /// <inheritdoc />
@@ -190,41 +235,83 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     public static Value Clamp(Value value, Value min, Value max) => Math.Clamp(value.value, min.value, max.value);
 
     /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
     public static (Value Quotient, Value Remainder) DivRem(Value left, Value right)
     {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
         (ushort quotient, ushort remainder) = Math.DivRem(left, right);
         return (quotient, remainder);
     }
 
     /// <inheritdoc />
-    public static Value RotateLeft(Value value, int rotateAmount) => ushort.RotateLeft(value.value, rotateAmount);
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value RotateLeft(Value value, int rotateAmount)
+    {
+        value.ThrowIfRegister();
+
+        rotateAmount %= BIT_COUNT;
+        return (ushort)(((value.value << rotateAmount) | (value.value >> (BIT_COUNT - rotateAmount))) & MASK);
+    }
 
     /// <inheritdoc />
-    public static Value RotateRight(Value value, int rotateAmount) => ushort.RotateRight(value.value, rotateAmount);
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value RotateRight(Value value, int rotateAmount)
+    {
+        value.ThrowIfRegister();
+
+        rotateAmount %= BIT_COUNT;
+        return (ushort)(((value.value >> rotateAmount) | (value.value << (BIT_COUNT - rotateAmount))) & MASK);
+    }
 
     /// <inheritdoc />
     public static int Sign(Value value) => value.value == 0 ? 0 : 1;
 
     /// <inheritdoc />
-    public static bool IsEvenInteger(Value value) => ushort.IsEvenInteger(value.value);
+    public static bool IsEvenInteger(Value value) => value.IsNumber && ushort.IsEvenInteger(value.value);
 
     /// <inheritdoc />
-    public static bool IsOddInteger(Value value) => ushort.IsOddInteger(value);
+    public static bool IsOddInteger(Value value) => value.IsNumber && ushort.IsOddInteger(value);
 
     /// <inheritdoc />
-    public static bool IsPow2(Value value) => ushort.IsPow2(value.value);
+    public static bool IsPow2(Value value) => value.IsNumber && ushort.IsPow2(value.value);
 
     /// <inheritdoc />
-    public static Value Log2(Value value) => ushort.Log2(value.value);
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value Log2(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return ushort.Log2(value.value);
+    }
 
     /// <inheritdoc />
-    public static Value PopCount(Value value) => ushort.PopCount(value.value);
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value PopCount(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return ushort.PopCount(value.value);
+    }
 
     /// <inheritdoc />
-    public static Value LeadingZeroCount(Value value) => ushort.LeadingZeroCount(value.value);
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value LeadingZeroCount(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return ushort.LeadingZeroCount(value.value);
+    }
 
     /// <inheritdoc />
-    public static Value TrailingZeroCount(Value value) => ushort.TrailingZeroCount(value.value);
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value TrailingZeroCount(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return ushort.TrailingZeroCount(value.value);
+    }
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">If the resulting value is greater than <see cref="MAX_REGISTER"/></exception>
@@ -284,52 +371,156 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     // === Operators ===
 
     /// <inheritdoc />
-    public static Value operator +(Value value) => value;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator +(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return value;
+    }
 
     /// <inheritdoc />
-    public static Value operator -(Value value) => (MAX_VALUE + 1 - value.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator -(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return -value.value & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator ++(Value value) => (value + 1) % MODULO;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator ++(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return (value + 1) & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator --(Value value) => (value - 1) % MODULO;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator --(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return (value - 1) & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator +(Value left, Value right) => (left.value + right.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator +(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return (left.value + right.value) & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator -(Value left, Value right) => (left.value - right.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator -(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return (left.value - right.value) & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator *(Value left, Value right) => (left.value * right.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator *(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return (left.value * right.value) & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator /(Value left, Value right) => (left.value / right.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator /(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return left.value / right.value;
+    }
 
     /// <inheritdoc />
-    public static Value operator %(Value left, Value right) => left.value % right.value;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator %(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return left.value % right.value;
+    }
 
     /// <inheritdoc />
-    public static Value operator ~(Value value) => ~value.value % MODULO;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator ~(Value value)
+    {
+        value.ThrowIfRegister();
+
+        return ~value.value & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator &(Value left, Value right) => (left.value & right.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator &(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return left.value & right.value;
+    }
 
     /// <inheritdoc />
-    public static Value operator |(Value left, Value right) => (left.value | right.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator |(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return left.value | right.value;
+    }
 
     /// <inheritdoc />
-    public static Value operator ^(Value left, Value right) => (left.value ^ right.value) % MODULO;
+    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    public static Value operator ^(Value left, Value right)
+    {
+        left.ThrowIfRegister();
+        right.ThrowIfRegister();
+
+        return left.value ^ right.value;
+    }
 
     /// <inheritdoc />
-    public static Value operator <<(Value value, int shiftAmount) => (value.value << shiftAmount) % MODULO;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator <<(Value value, int shiftAmount)
+    {
+        value.ThrowIfRegister();
+
+        return (value.value << shiftAmount) & MASK;
+    }
 
     /// <inheritdoc />
-    public static Value operator >> (Value value, int shiftAmount) => (value.value >> shiftAmount) % MODULO;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator >>(Value value, int shiftAmount)
+    {
+        value.ThrowIfRegister();
+
+        return value.value >> shiftAmount;
+    }
 
     /// <inheritdoc />
-    public static Value operator >>> (Value value, int shiftAmount) => (value.value >>> shiftAmount) % MODULO;
+    /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    public static Value operator >>>(Value value, int shiftAmount)
+    {
+        value.ThrowIfRegister();
+
+        return value.value >>> shiftAmount;
+    }
 
     /// <inheritdoc />
     public static bool operator ==(Value left, Value right) => left.value == right.value;
@@ -392,16 +583,19 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteBigEndian(byte[] destination) => BinaryPrimitives.TryWriteUInt16BigEndian(destination, this.value)
                                                                         ? sizeof(ushort)
                                                                         : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteBigEndian(byte[] destination, int startIndex) => BinaryPrimitives.TryWriteUInt16BigEndian(destination.AsSpan(startIndex), this.value)
                                                                                         ? sizeof(ushort)
                                                                                         : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteBigEndian(Span<byte> destination) => BinaryPrimitives.TryWriteUInt16BigEndian(destination, this.value)
                                                                             ? sizeof(ushort)
                                                                             : throw new ArgumentException("Destination too short", nameof(destination));
@@ -420,16 +614,19 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteLittleEndian(byte[] destination) => BinaryPrimitives.TryWriteUInt16LittleEndian(destination, this.value)
                                                                         ? sizeof(ushort)
                                                                         : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteLittleEndian(byte[] destination, int startIndex) => BinaryPrimitives.TryWriteUInt16LittleEndian(destination.AsSpan(startIndex), this.value)
                                                                                            ? sizeof(ushort)
                                                                                            : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">If <see cref="destination"/> is too short to write to</exception>
     int IBinaryInteger<Value>.WriteLittleEndian(Span<byte> destination) => BinaryPrimitives.TryWriteUInt16LittleEndian(destination, this.value)
                                                                                ? sizeof(ushort)
                                                                                : throw new ArgumentException("Destination too short", nameof(destination));
@@ -474,7 +671,9 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     decimal IConvertible.ToDecimal(IFormatProvider? provider) => Convert.ToDecimal(this.value);
 
     /// <inheritdoc />
-    DateTime IConvertible.ToDateTime(IFormatProvider? provider) => throw new InvalidCastException("Cannot case UInt16 to DateTime");
+    /// <exception cref="InvalidCastException">Always thrown by this method</exception>
+    [DoesNotReturn]
+    DateTime IConvertible.ToDateTime(IFormatProvider? provider) => throw new InvalidCastException("Cannot case Value to DateTime");
 
     /// <inheritdoc />
     object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)this.value).ToType(conversionType, provider);
@@ -483,7 +682,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     static Value INumberBase<Value>.Abs(Value value) => value;
 
     /// <inheritdoc />
-    static bool INumberBase<Value>.IsZero(Value value) => value.value == 0;
+    static bool INumberBase<Value>.IsZero(Value value) => value.value is 0;
 
     /// <inheritdoc />
     static bool INumberBase<Value>.IsPositive(Value value) => true;
@@ -492,10 +691,10 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     static bool INumberBase<Value>.IsNegative(Value value) => false;
 
     /// <inheritdoc />
-    static bool INumberBase<Value>.IsInteger(Value value) => true;
+    static bool INumberBase<Value>.IsInteger(Value value) => value.IsNumber;
 
     /// <inheritdoc />
-    static bool INumberBase<Value>.IsRealNumber(Value value) => true;
+    static bool INumberBase<Value>.IsRealNumber(Value value) => value.IsNumber;
 
     /// <inheritdoc />
     static bool INumberBase<Value>.IsComplexNumber(Value value) => false;
@@ -507,7 +706,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     static bool INumberBase<Value>.IsCanonical(Value value) => true;
 
     /// <inheritdoc />
-    static bool INumberBase<Value>.IsNormal(Value value) => value.value != 0;
+    static bool INumberBase<Value>.IsNormal(Value value) => value.value is not 0;
 
     /// <inheritdoc />
     static bool INumberBase<Value>.IsSubnormal(Value value) => false;
@@ -658,10 +857,10 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryReadBigEndian" />
-    private static bool TryReadBigEndian<T>(ReadOnlySpan<byte> source, bool isUnsigned, out T value)
-        where T : IBinaryInteger<T>
+    private static bool TryReadBigEndian<TOther>(ReadOnlySpan<byte> source, bool isUnsigned, out TOther value)
+        where TOther : IBinaryInteger<TOther>
     {
-        return T.TryReadBigEndian(source, isUnsigned, out value);
+        return TOther.TryReadBigEndian(source, isUnsigned, out value);
     }
 
     /// <inheritdoc />
@@ -678,9 +877,9 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryReadLittleEndian" />
-    private static bool TryReadLittleEndian<T>(ReadOnlySpan<byte> source, bool isUnsigned, out T value)
-        where T : IBinaryInteger<T>
+    private static bool TryReadLittleEndian<TOther>(ReadOnlySpan<byte> source, bool isUnsigned, out TOther value)
+        where TOther : IBinaryInteger<TOther>
     {
-        return T.TryReadLittleEndian(source, isUnsigned, out value);
+        return TOther.TryReadLittleEndian(source, isUnsigned, out value);
     }
 }
