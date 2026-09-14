@@ -10,7 +10,7 @@ namespace Synacor.Data;
 [PublicAPI]
 public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
 {
-    private MemoryManager _memoryManager;
+    private MemoryManager memoryManager;
     private T* pointer;
     private readonly int length;
 
@@ -20,7 +20,7 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
     /// <param name="memoryManager">Memory block to create the view over</param>
     public MemoryView(MemoryManager memoryManager)
     {
-        this._memoryManager = memoryManager;
+        this.memoryManager = memoryManager;
         this.pointer = (T*)memoryManager.Buffer;
         this.length = (int)memoryManager.ByteLength / sizeof(T);
     }
@@ -42,7 +42,7 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
         ArgumentOutOfRangeException.ThrowIfNegative(length);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(length, ((int)memoryManager.ByteLength / sizeof(T)) - offset);
 
-        this._memoryManager = memoryManager;
+        this.memoryManager = memoryManager;
         this.pointer = (T*)memoryManager.Buffer + offset;
         this.length = length;
     }
@@ -51,7 +51,7 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
     /// <exception cref="ObjectDisposedException">If the underlying memory has been disposed</exception>
     public override Span<T> GetSpan()
     {
-        ObjectDisposedException.ThrowIf(this._memoryManager.IsDisposed, this._memoryManager);
+        ObjectDisposedException.ThrowIf(this.memoryManager.IsDisposed, this.memoryManager);
 
         return new Span<T>(this.pointer, this.length);
     }
@@ -61,7 +61,7 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="elementIndex"/> is outside of the range of the memory block</exception>
     public override MemoryHandle Pin(int elementIndex = 0)
     {
-        ObjectDisposedException.ThrowIf(this._memoryManager.IsDisposed, this._memoryManager);
+        ObjectDisposedException.ThrowIf(this.memoryManager.IsDisposed, this.memoryManager);
 
         return elementIndex >= 0 && elementIndex < this.length
                    ? new MemoryHandle(this.pointer + elementIndex)
@@ -70,12 +70,12 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If the underlying memory has been disposed</exception>
-    public override void Unpin() => ObjectDisposedException.ThrowIf(this._memoryManager.IsDisposed, this._memoryManager);
+    public override void Unpin() => ObjectDisposedException.ThrowIf(this.memoryManager.IsDisposed, this.memoryManager);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        this._memoryManager  = null!;
+        this.memoryManager  = null!;
         this.pointer = null;
     }
 }

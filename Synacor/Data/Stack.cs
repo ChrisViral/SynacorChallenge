@@ -293,9 +293,11 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <param name="capacity">Minimum capacity to ensure</param>
     /// <returns>The new capacity of this <see cref="Stack"/></returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="capacity"/> is less than zero</exception>
     public int EnsureCapacity(int capacity)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+        ArgumentOutOfRangeException.ThrowIfNegative(capacity);
 
         if (this.Capacity < capacity)
         {
@@ -322,13 +324,18 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     }
 
     /// <summary>
-    /// Sets the capacity of this <see cref="Stack"/> to the specified amount<br/>
+    /// Reduices the capacity of this <see cref="Stack"/> to the specified number<br/>
     /// The capacity will never be set below <see cref="MinCapacity"/>
     /// </summary>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="newCapacity"/> is less than zero or less than <see cref="Count"/></exception>
     public void TrimExcess(int newCapacity)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
+
+        if (newCapacity >= this.Capacity) return;
+        ArgumentOutOfRangeException.ThrowIfNegative(newCapacity);
+        ArgumentOutOfRangeException.ThrowIfLessThan(newCapacity, this.Count);
 
         newCapacity = Math.Max(newCapacity, this.MinCapacity);
         if (this.Capacity != newCapacity)
@@ -348,6 +355,9 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
         this.Capacity = 0;
         this.Count = 0;
     }
+
+    /// <inheritdoc cref="IEnumerable{T}.GetEnumerator()" />
+    public StackRefEnumerator GetEnumerator() => new(this);
 
     /// <summary>
     /// Grows this <see cref="Stack"/> and reallocates memory
@@ -378,9 +388,6 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
         this.version++;
     }
 
-    /// <inheritdoc cref="IEnumerable{T}.GetEnumerator()" />
-    public StackRefEnumerator GetEnumerator() => new(this);
-
     /// <inheritdoc />
     IEnumerator<ushort> IEnumerable<ushort>.GetEnumerator() => new StackEnumerator(this);
 
@@ -401,7 +408,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
         /// <inheritdoc cref="IEnumerator{T}.Current" />
         public ushort Current { get; private set; }
 
-        /// <inheritdoc cref="IEnumerator{T}.MoveNext" />
+        /// <inheritdoc cref="IEnumerator.MoveNext" />
         /// <exception cref="ObjectDisposedException">If the <see cref="Stack"/> this enumerates has been disposed</exception>
         public bool MoveNext()
         {
