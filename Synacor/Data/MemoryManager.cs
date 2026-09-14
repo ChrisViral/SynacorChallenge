@@ -5,10 +5,10 @@ using JetBrains.Annotations;
 namespace Synacor.Data;
 
 /// <summary>
-/// <see cref="VirtualMachine"/> memory block
+/// <see cref="VirtualMachine"/> unmanaged memory block manager
 /// </summary>
 [PublicAPI]
-public sealed unsafe class Memory : MemoryManager<ushort>
+public sealed unsafe class MemoryManager : MemoryManager<ushort>
 {
     /// <summary>
     /// Memory block length
@@ -23,7 +23,7 @@ public sealed unsafe class Memory : MemoryManager<ushort>
     /// <summary>
     /// Buffer start address
     /// </summary>
-    /// <exception cref="ObjectDisposedException">If this <see cref="Memory"/> has been disposed</exception>
+    /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
     public ushort* Buffer
     {
         get
@@ -35,26 +35,26 @@ public sealed unsafe class Memory : MemoryManager<ushort>
     }
 
     /// <summary>
-    /// If this memory block has been disposed
+    /// If this <see cref="MemoryManager"/> has been disposed
     /// </summary>
     public bool IsDisposed { get; private set; }
 
     /// <summary>
-    /// Creates a new unmanaged memory block of the specified length
+    /// Creates a new <see cref="MemoryManager"/> with an unmanaged memory block of the specified length
     /// </summary>
     /// <param name="length">Length of the memory block to create</param>
     /// <exception cref="ArgumentOutOfRangeException">If the length is less than zero</exception>
-    public Memory(nuint length)
+    public MemoryManager(int length)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
-        this.Length     = (int)length;
-        this.ByteLength = length * sizeof(ushort);
+        this.Length     = length;
+        this.ByteLength = (nuint)length * sizeof(ushort);
         this.Buffer     = (ushort*)NativeMemory.AllocZeroed(this.ByteLength);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ObjectDisposedException">If this <see cref="Memory"/> has been disposed</exception>
+    /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
     public override Span<ushort> GetSpan()
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
@@ -63,7 +63,7 @@ public sealed unsafe class Memory : MemoryManager<ushort>
     }
 
     /// <inheritdoc />
-    /// <exception cref="ObjectDisposedException">If this <see cref="Memory"/> has been disposed</exception>
+    /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="elementIndex"/> is outside of the range of the memory block</exception>
     public override MemoryHandle Pin(int elementIndex = 0)
     {
@@ -75,13 +75,13 @@ public sealed unsafe class Memory : MemoryManager<ushort>
     }
 
     /// <inheritdoc />
-    /// <exception cref="ObjectDisposedException">If this <see cref="Memory"/> has been disposed</exception>
+    /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
     public override void Unpin() => ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
     /// <summary>
-    /// Zeroes the entirety of this <see cref="Memory"/> block
+    /// Zeroes the entirety of this <see cref="MemoryManager"/>'s unmanaged memory block
     /// </summary>
-    /// <exception cref="ObjectDisposedException">If this <see cref="Memory"/> has been disposed</exception>
+    /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
     public void Clear()
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);

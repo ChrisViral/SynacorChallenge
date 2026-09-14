@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Synacor.Data;
@@ -29,7 +29,10 @@ public sealed partial class VirtualMachine : IDisposable
     private const int BUFFER_SIZE = MEMORY_SIZE + REGISTER_COUNT;
 
     private Stack stack = new();
+    private MemoryManager memoryManager;
+    private unsafe ushort* memory;
     private unsafe ushort* ip;
+    private unsafe ushort* registers;
     private bool hasData;
 
     /// <summary>
@@ -50,8 +53,10 @@ public sealed partial class VirtualMachine : IDisposable
     {
         this.Logger = logger;
 
-        this.memory = new Memory(BUFFER_SIZE);
-        this.ip = this.memory.Buffer;
+        this.memoryManager = new MemoryManager(BUFFER_SIZE);
+        this.memory = this.memoryManager.Buffer;
+        this.ip = this.memory;
+        this.registers = this.memory + MEMORY_SIZE;
     }
 
     /// <summary>
@@ -76,7 +81,7 @@ public sealed partial class VirtualMachine : IDisposable
         // Get memory view
         this.Logger.LogInformation("Loading data file into Virtual Machine memory...");
         int length = (int)file.Length;
-        using MemoryView<byte> view = new(this.memory, 0, length);
+        using MemoryView<byte> view = new(this.memoryManager, 0, length);
 
         // Clear the data if there is any
         if (this.hasData)
@@ -109,7 +114,7 @@ public sealed partial class VirtualMachine : IDisposable
         }
 
         // Copy data to memory
-        data.CopyTo(this.memory.GetSpan());
+        data.CopyTo(this.memoryManager.GetSpan());
         this.hasData = true;
     }
 
@@ -135,7 +140,7 @@ public sealed partial class VirtualMachine : IDisposable
         }
 
         // Copy data to memory
-        castedData.CopyTo(this.memory.GetSpan());
+        castedData.CopyTo(this.memoryManager.GetSpan());
         this.hasData = true;
     }
 
@@ -149,10 +154,11 @@ public sealed partial class VirtualMachine : IDisposable
 
         // Reset instruction pointer and stack
         this.stack.Clear();
+        this.ip = this.memory;
         if (!this.hasData) return;
 
         // Clear memory
-        this.memory.Clear();
+        this.memoryManager.Clear();
         this.hasData = false;
     }
 
@@ -172,7 +178,12 @@ public sealed partial class VirtualMachine : IDisposable
     private unsafe void ReleaseUnmanagedResources()
     {
         this.stack.Dispose();
-        this.memory = null!;
+        ((IDisposable)this.memoryManager).Dispose();
+
+        this.stack = null!;
+        this.memoryManager = null!;
+        this.memory = null;
         this.ip = null;
+        this.registers = null;
     }
 }
