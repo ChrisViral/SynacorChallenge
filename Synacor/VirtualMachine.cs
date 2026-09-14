@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Synacor.Data;
@@ -28,7 +28,7 @@ public sealed partial class VirtualMachine : IDisposable
     /// </summary>
     private const int BUFFER_SIZE = MEMORY_SIZE + REGISTER_COUNT;
 
-    private Memory memory;
+    private Stack stack = new();
     private unsafe ushort* ip;
     private bool hasData;
 
@@ -147,8 +147,8 @@ public sealed partial class VirtualMachine : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
-        // Reset instruction pointer
-        this.ip = this.memory.Buffer;
+        // Reset instruction pointer and stack
+        this.stack.Clear();
         if (!this.hasData) return;
 
         // Clear memory
@@ -171,7 +171,7 @@ public sealed partial class VirtualMachine : IDisposable
     /// </summary>
     private unsafe void ReleaseUnmanagedResources()
     {
-        ((IDisposable)this.memory).Dispose();
+        this.stack.Dispose();
         this.memory = null!;
         this.ip = null;
     }
