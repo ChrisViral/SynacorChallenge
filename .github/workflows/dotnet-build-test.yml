@@ -1,6 +1,6 @@
-# .github/workflows/dotnet-build.yml
+# .github/workflows/dotnet-build-test.yml
 
-name: Build
+name: Build and Test
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_and_test:
-    name: Build on .NET 10.0
+    name: Build on .NET 10.0 and run unit tests
     runs-on: ubuntu-latest
 
     steps:
@@ -32,3 +32,11 @@ jobs:
             --no-restore \
             --no-incremental \
             --WarnAsError
+
+      - name: Run unit tests
+        run: |
+          dotnet test \
+            --configuration Release \
+            --no-build \
+            --no-restore \
+            --verbosity normal

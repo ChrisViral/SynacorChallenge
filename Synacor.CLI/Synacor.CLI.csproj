@@ -16,7 +16,7 @@
     <Title>Synacor CLI</Title>
     <Authors>Christophe Savard</Authors>
     <Owner>ChrisViral</Owner>
-    <Description>Synacore Challenge implementation in C#</Description>
+    <Description>Synacor Challenge implementation in C#</Description>
     <Copyright>Copyright © 2026 Christophe Savard</Copyright>
     <RepositoryUrl>https://github.com/ChrisViral/SynacorChallenge</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
