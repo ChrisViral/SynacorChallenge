@@ -15,14 +15,14 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     /// <summary>
     /// Default and minimum <see cref="Stack"/> size
     /// </summary>
-    private const int MIN_CAPACITY = 128;
+    internal const int MIN_CAPACITY = 128;
     /// <summary>
     /// Factor to grow the <see cref="Stack"/> by when full
     /// </summary>
-    private const int GROW_FACTOR = 2;
+    internal const int GROW_FACTOR = 2;
 
-    private ushort* stack;
-    private ushort* top;
+    internal ushort* stack;
+    internal ushort* top;
     private int version;
 
     /// <summary>
@@ -59,7 +59,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
     {
         get;
         set => field = Math.Max(value, MIN_CAPACITY);
-    }
+    } = MIN_CAPACITY;
 
     /// <summary>
     /// If this <see cref="Stack"/> has been disposed
@@ -91,7 +91,6 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
 
         this.Capacity = Math.Max(capacity, MIN_CAPACITY);
-        this.MinCapacity = this.Capacity;
         this.stack = (ushort*)NativeMemory.Alloc((nuint)capacity * sizeof(ushort));
         this.top   = this.stack;
     }
@@ -317,7 +316,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<ushort>, IDisposable
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
         int threshold = (this.Capacity * 9) / 10;
-        if (this.Count < threshold)
+        if (this.Count <= threshold)
         {
             this.Capacity = Math.Max(this.MinCapacity, this.Count);
         }

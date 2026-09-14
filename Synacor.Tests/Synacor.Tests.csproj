@@ -10,6 +10,7 @@
     <AssemblyOriginatorKeyFile>Properties\Synacor.Tests.snk</AssemblyOriginatorKeyFile>
     <Configurations>Release;Debug</Configurations>
     <Platforms>x64</Platforms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Title>Synacor Tests</Title>
     <Authors>Christophe Savard</Authors>
