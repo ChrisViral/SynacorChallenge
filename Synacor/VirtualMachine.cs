@@ -12,21 +12,13 @@ namespace Synacor;
 public sealed partial class VirtualMachine : IDisposable
 {
     /// <summary>
-    /// Max numerical value
-    /// </summary>
-    private const int MAX_VALUE = short.MaxValue;
-    /// <summary>
     /// Memory size, in values
     /// </summary>
-    private const int MEMORY_SIZE = MAX_VALUE + 1;
-    /// <summary>
-    /// Amount of registers
-    /// </summary>
-    private const int REGISTER_COUNT = 8;
+    private const int MEMORY_SIZE = 1 << Value.BIT_COUNT;
     /// <summary>
     /// Total buffer size, in values
     /// </summary>
-    private const int BUFFER_SIZE = MEMORY_SIZE + REGISTER_COUNT;
+    private const int BUFFER_SIZE = MEMORY_SIZE + Value.REGISTER_COUNT;
 
     private Stack stack = new();
     private MemoryManager memoryManager;

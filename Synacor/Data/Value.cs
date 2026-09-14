@@ -31,7 +31,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <summary>
     /// Bit count of the numerical values
     /// </summary>
-    private const int BIT_COUNT = sizeof(ushort) - 1;
+    public const int BIT_COUNT = (sizeof(ushort) * 8) - 1;
     /// <summary>
     /// Mathematical operation mask (modulo 32768 equivalent)
     /// </summary>
