@@ -12,4 +12,7 @@ public partial class SynacorCommand
 
     [LoggerMessage(LogLevel.Error, "Exception occured while runing the Virtual Machine, exiting...")]
     static partial void LogVMThrewException(ILogger logger, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Console cancellation requested...")]
+    static partial void LogVirtualMachineOperationCancelled(ILogger logger);
 }
