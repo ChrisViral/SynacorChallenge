@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
+using FastEnumUtility;
 using JetBrains.Annotations;
 
 namespace Synacor.Data;
@@ -65,6 +66,11 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// If this <see cref="Value"/> contains a register address
     /// </summary>
     public bool IsRegister => this.value > MAX_VALUE;
+
+    /// <summary>
+    /// If this <see cref="Value"/> is a valid <see cref="Opcode"/> value
+    /// </summary>
+    public bool IsOpcode => FastEnum.IsDefined((Opcode)this.value);
 
     /// <summary>
     /// The register address of this <see cref="Value"/>
@@ -149,19 +155,31 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// Converts this <see cref="Value"/> to either it's numberical string or register address string
     /// </summary>
     /// <returns>The string representation of this <see cref="Value"/></returns>
-    public override string ToString() => this.IsNumber
-                                             ? this.value.ToString()
-                                             : this.RegisterChar.ToString();
+    public override string ToString()
+    {
+        if (this.IsRegister) return this.RegisterChar.ToString();
+        return this.IsOpcode
+                   ? $"({((Opcode)this.value).FastToString()}) {this.value}"
+                   : this.value.ToString();
+    }
 
     /// <inheritdoc />
-    public string ToString(IFormatProvider? provider) => this.IsNumber
-                                                             ? this.value.ToString(provider)
-                                                             : this.RegisterChar.ToString(provider);
+    public string ToString(IFormatProvider? provider)
+    {
+        if (this.IsRegister) return this.RegisterChar.ToString(provider);
+        return this.IsOpcode
+                   ? $"({((Opcode)this.value).FastToString()}) {this.value.ToString(provider)}"
+                   : this.value.ToString(provider);
+    }
 
     /// <inheritdoc />
-    public string ToString(string? format, IFormatProvider? formatProvider) => this.IsNumber
-                                                                                   ? this.value.ToString(format, formatProvider)
-                                                                                   : this.RegisterChar.ToString(formatProvider);
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        if (this.IsRegister) return this.RegisterChar.ToString(formatProvider);
+        return this.IsOpcode
+                   ? $"({((Opcode)this.value).FastToString()}) {this.value.ToString(format, formatProvider)}"
+                   : this.value.ToString(format, formatProvider);
+    }
 
     /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)

@@ -33,8 +33,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FastEnum" Version="2.0.8" />
     <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
-    <PackageReference Include="JetBrains.ExternalAnnotations" Version="10.2.169" />
+    <PackageReference Include="JetBrains.ExternalAnnotations" Version="10.2.170" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
 
