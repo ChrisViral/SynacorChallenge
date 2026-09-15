@@ -16,9 +16,10 @@ public partial class VirtualMachine
     /// Halts the <see cref="VirtualMachine"/>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Halt()
+    private async ValueTask Halt(CancellationToken token)
     {
         this.State = State.HALTED;
+        await this.output.Flush(token).ConfigureAwait(false);
         LogHalted(this.Logger);
     }
 

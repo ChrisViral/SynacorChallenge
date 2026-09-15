@@ -182,7 +182,7 @@ public sealed partial class VirtualMachine : IDisposable
             {
                 // 0 - halt - Halt execution
                 case Opcode.HALT:
-                    Halt();
+                    await Halt(token).ConfigureAwait(false);
                     return 0;
 
                 // 1 - set a b - Set register a to b
@@ -212,8 +212,9 @@ public sealed partial class VirtualMachine : IDisposable
 
                 // 3 - pop a - Pop the top value of the stack and store it into a (failure branch)
                 case Opcode.POP:
-                    LogStackEmpty(this.Logger);
                     this.State = State.ERROR;
+                    await this.output.Flush(token).ConfigureAwait(false);
+                    LogStackEmpty(this.Logger);
                     return 1;
 
                 // 4 - eq a b c - Set a to 1 if b equals c, otherwise set it to 0
@@ -345,7 +346,7 @@ public sealed partial class VirtualMachine : IDisposable
 
                 // 18 - ret - Pop the stack and jump to the address it specified, halt if the stack is empty (failure branch)
                 case Opcode.RET:
-                    Halt();
+                    await Halt(token).ConfigureAwait(false);
                     return 0;
 
                 // 19 - out a - Output the value of a as an ASCII character
@@ -362,8 +363,10 @@ public sealed partial class VirtualMachine : IDisposable
                 case Opcode.IN:
                 {
                     this.State = State.IO;
+                    await this.output.Flush(token).ConfigureAwait(false);
                     char value = await this.input.Read(token).ConfigureAwait(false);
                     this.State = State.RUNNING;
+
                     ref Value register = ref GetRegister();
                     register = value;
                     break;
@@ -375,6 +378,7 @@ public sealed partial class VirtualMachine : IDisposable
 
                 default:
                     this.State = State.ERROR;
+                    await this.output.Flush(token).ConfigureAwait(false);
                     LogUnknownOpcode(this.Logger, (int)opcode);
                     throw new InvalidEnumArgumentException(nameof(opcode), (int)opcode, typeof(Opcode));
             }
@@ -382,6 +386,7 @@ public sealed partial class VirtualMachine : IDisposable
 
         // Virtual Machine in an unexpected way
         this.State = State.ERROR;
+        await this.output.Flush(token).ConfigureAwait(false);
         LogUnexpectedTermination(this.Logger);
         return 1;
     }

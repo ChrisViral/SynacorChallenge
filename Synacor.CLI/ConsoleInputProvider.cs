@@ -3,10 +3,10 @@
 /// <summary>
 /// <see cref="Console"/> IO provider
 /// </summary>
-public sealed class ConsoleProvider : IInputProvider, IOutputProvider
+public sealed class ConsoleInputProvider : IInputProvider
 {
     /// <summary> Read buffer </summary>
-    private readonly char[] buffer = new char[128];
+    private readonly char[] buffer = new char[512];
     /// <summary> Current read index </summary>
     private int index;
     /// <summary> Current buffer length </summary>
@@ -41,7 +41,4 @@ public sealed class ConsoleProvider : IInputProvider, IOutputProvider
             this.length = await Console.In.ReadAsync(this.buffer, token);
         }
     }
-
-    /// <inheritdoc />
-    public Task Write(char value, CancellationToken token = default) => Console.Out.WriteAsync(value);
 }

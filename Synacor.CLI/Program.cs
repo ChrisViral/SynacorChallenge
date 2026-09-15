@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Synacor.CLI;
 
+Console.Title = "Synacor Challenge";
+
 // DI Configuration
 Cli.Ext.ConfigureServices(services =>
 {
@@ -11,7 +13,7 @@ Cli.Ext.ConfigureServices(services =>
                 .Enrich.FromLogContext()
                 .CreateLogger();
 
-    services.AddSingleton<ConsoleProvider>()
+    services.AddSingleton<ConsoleInputProvider>()
             .AddLogging(builder => builder.AddSerilog(Log.Logger, true));
 });
 
@@ -30,7 +32,7 @@ try
 catch (Exception e)
 {
     // Log exceptions
-    Log.Error(e, "An error occured while executing the command.");
+    Log.Error(e, "An error occured while executing the command");
     result = 1;
 }
 

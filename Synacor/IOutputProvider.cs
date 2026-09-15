@@ -13,5 +13,11 @@ public interface IOutputProvider
     /// </summary>
     /// <param name="value">Value to write</param>
     /// <param name="token">Cancellation token</param>
-    Task Write(char value, CancellationToken token = default);
+    ValueTask Write(char value, CancellationToken token = default);
+
+    /// <summary>
+    /// Flushes any yet unwritten outputted text
+    /// </summary>
+    /// <param name="token">Cancellation token</param>
+    ValueTask Flush(CancellationToken token = default);
 }
