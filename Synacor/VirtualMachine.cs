@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.ComponentModel;
+using System.Runtime.InteropServices;
+using FastEnumUtility;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Synacor.Data;
@@ -27,6 +29,14 @@ public sealed partial class VirtualMachine : IDisposable
     private unsafe Value* registers;
     private bool hasData;
 
+    private readonly IInputProvider input;
+    private readonly IOutputProvider output;
+
+    /// <summary>
+    /// The current state of this <see cref="VirtualMachine"/>
+    /// </summary>
+    public State State { get; private set; }
+
     /// <summary>
     /// If this <see cref="VirtualMachine"/> has been disposed
     /// </summary>
@@ -41,7 +51,9 @@ public sealed partial class VirtualMachine : IDisposable
     /// Creates a new <see cref="VirtualMachine"/>
     /// </summary>
     /// <param name="logger">Logger instance</param>
-    public unsafe VirtualMachine(ILogger<VirtualMachine> logger)
+    /// <param name="input">Input provider</param>
+    /// <param name="output">Output provider</param>
+    public unsafe VirtualMachine(ILogger<VirtualMachine> logger, IInputProvider input, IOutputProvider output)
     {
         this.Logger = logger;
 
@@ -49,6 +61,9 @@ public sealed partial class VirtualMachine : IDisposable
         this.memory = this.memoryManager.Buffer;
         this.ip = this.memory;
         this.registers = this.memory + MEMORY_SIZE;
+
+        this.input = input;
+        this.output = output;
     }
 
     /// <summary>
@@ -71,7 +86,6 @@ public sealed partial class VirtualMachine : IDisposable
         if (file.Length > MEMORY_SIZE * Value.SIZE) throw new ArgumentException("File size too large for Virtual Machine memory", nameof(file));
 
         // Get memory view
-        this.Logger.LogInformation("Loading data file into Virtual Machine memory...");
         int length = (int)file.Length;
         using MemoryView<byte> view = new(this.memoryManager, 0, length);
 
@@ -137,6 +151,52 @@ public sealed partial class VirtualMachine : IDisposable
     }
 
     /// <summary>
+    /// Starts the <see cref="VirtualMachine"/>'s program
+    /// </summary>
+    /// <param name="token">Cancellation token</param>
+    /// <exception cref="OperationCanceledException">If the operation is cancelled via</exception>
+    /// ReSharper disable once CognitiveComplexity
+    public unsafe void Run(CancellationToken token)
+    {
+        this.State = State.RUNNING;
+        while (this.State is State.RUNNING)
+        {
+            if (token.IsCancellationRequested)
+            {
+                LogOperationCancelled(this.Logger);
+                this.State = State.CANCELLED;
+                token.ThrowIfCancellationRequested();
+            }
+
+            Opcode opcode = *this.ip++;
+            switch (opcode)
+            {
+                case Opcode.HALT: // 0
+                    this.State = State.HALTED;
+                    break;
+
+                case Opcode.OUT: // 19
+                    this.output.Write((char)*this.ip++);
+                    break;
+
+                case Opcode.NOOP: // 21
+                    break;
+
+                default:
+                    this.State = State.ERROR;
+                    if (FastEnum.IsDefined(opcode))
+                    {
+                        LogUnimplementedOpcode(this.Logger, opcode.FastToString(), (int)opcode);
+                        throw new NotImplementedException($"Opcode {opcode.FastToString()} not yet implemented");
+                    }
+
+                    LogUnknownOpcode(this.Logger, (int)opcode);
+                    throw new InvalidEnumArgumentException(nameof(opcode), (int)opcode, typeof(Opcode));
+            }
+        }
+    }
+
+    /// <summary>
     /// Resets this <see cref="VirtualMachine"/> to it's default state
     /// </summary>
     /// <exception cref="ObjectDisposedException">If this <see cref="VirtualMachine"/> has been disposed</exception>
@@ -144,14 +204,17 @@ public sealed partial class VirtualMachine : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
-        // Reset instruction pointer and stack
+        // Reset instruction, stack, and state
         this.stack.Clear();
         this.ip = this.memory;
-        if (!this.hasData) return;
+        this.State = State.IDLE;
 
         // Clear memory
-        this.memoryManager.Clear();
-        this.hasData = false;
+        if (this.hasData)
+        {
+            this.memoryManager.Clear();
+            this.hasData = false;
+        }
     }
 
     /// <inheritdoc />

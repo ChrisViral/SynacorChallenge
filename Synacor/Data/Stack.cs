@@ -124,8 +124,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
             Grow();
         }
 
-        *this.top = item;
-        this.top++;
+        *this.top++ = item;
         this.Count++;
         this.version++;
     }
@@ -142,14 +141,14 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
         if (this.IsEmpty) throw new InvalidOperationException("Stack is empty, cannot pop a value");
 
-        this.top--;
+        Value value = *--this.top;
         this.Count--;
         this.version++;
         if (allowShrink)
         {
             ShrinkIfNeeded();
         }
-        return *this.top;
+        return value;
     }
 
     /// <summary>
@@ -169,15 +168,13 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
             return false;
         }
 
-        this.top--;
+        item = *--this.top;
         this.Count--;
         this.version++;
         if (allowShrink)
         {
             ShrinkIfNeeded();
         }
-
-        item = *this.top;
         return true;
     }
 
@@ -228,8 +225,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
 
         for (Value* pointer = this.top; pointer != this.stack; /* pointer-- */)
         {
-            pointer--;
-            if (*pointer == item)
+            if (*--pointer == item)
             {
                 return true;
             }
@@ -252,8 +248,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
         Value* pointer = this.top;
         for (int i = 0; pointer != this.stack; i++)
         {
-            pointer--;
-            destination[i] = *pointer;
+            destination[i] = *--pointer;
         }
     }
 
@@ -270,8 +265,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
         Value* pointer = this.top;
         for (int i = 0; pointer != this.stack; i++)
         {
-            pointer--;
-            array[i] = *pointer;
+            array[i] = *--pointer;
         }
         return array;
     }
@@ -431,8 +425,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
 
             if (this.pointer > this.stack.stack)
             {
-                this.pointer--;
-                this.Current = *this.pointer;
+                this.Current = *--this.pointer;
                 return true;
             }
 
@@ -464,8 +457,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
 
             if (this.pointer > this.stack.stack)
             {
-                this.pointer--;
-                this.Current = *this.pointer;
+                this.Current = *--this.pointer;
                 return true;
             }
 
