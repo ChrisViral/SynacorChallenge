@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Synacor.Data.DebugViews;
 
 namespace Synacor.Data;
@@ -14,17 +15,6 @@ internal sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanage
     private MemoryManager memoryManager;
     private T* pointer;
     private readonly int length;
-
-    /// <summary>
-    /// Creates a view over the given <see cref="MemoryManager"/>
-    /// </summary>
-    /// <param name="memoryManager">Memory block to create the view over</param>
-    public MemoryView(MemoryManager memoryManager)
-    {
-        this.memoryManager = memoryManager;
-        this.pointer = (T*)memoryManager.Buffer;
-        this.length = (int)memoryManager.ByteLength / sizeof(T);
-    }
 
     /// <summary>
     /// Creates a view at a given offset and length over the given <see cref="MemoryManager"/>
@@ -50,6 +40,7 @@ internal sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanage
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If the underlying memory has been disposed</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override Span<T> GetSpan()
     {
         ObjectDisposedException.ThrowIf(this.memoryManager.IsDisposed, this.memoryManager);
@@ -71,6 +62,7 @@ internal sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanage
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If the underlying memory has been disposed</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Unpin() => ObjectDisposedException.ThrowIf(this.memoryManager.IsDisposed, this.memoryManager);
 
     /// <inheritdoc />

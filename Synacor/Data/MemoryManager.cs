@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Synacor.Data.DebugViews;
@@ -28,6 +29,7 @@ public sealed unsafe class MemoryManager : MemoryManager<Value>
     /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
     public Value* Buffer
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             ObjectDisposedException.ThrowIf(this.IsDisposed, this);
@@ -57,6 +59,7 @@ public sealed unsafe class MemoryManager : MemoryManager<Value>
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override Span<Value> GetSpan()
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
@@ -78,6 +81,7 @@ public sealed unsafe class MemoryManager : MemoryManager<Value>
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Unpin() => ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
     /// <summary>

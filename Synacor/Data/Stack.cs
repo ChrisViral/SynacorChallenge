@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Synacor.Data.DebugViews;
@@ -58,6 +59,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     public int MinCapacity
     {
         get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => field = Math.Max(value, MIN_CAPACITY);
     } = MIN_CAPACITY;
 
@@ -69,12 +71,20 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     /// <summary>
     /// If this <see cref="Stack"/> is currently empty
     /// </summary>
-    public bool IsEmpty => this.Count is 0;
+    public bool IsEmpty
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => this.Count is 0;
+    }
 
     /// <summary>
     /// If this <see cref="Stack"/> is currently at full capacity
     /// </summary>
-    public bool IsFull => this.Count == this.Capacity;
+    public bool IsFull
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => this.Count == this.Capacity;
+    }
 
     /// <summary>
     /// Creates a new <see cref="Stack"/> of default capacity
@@ -177,6 +187,7 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     /// <returns>The peeked item</returns>
     /// <exception cref="ObjectDisposedException">If this <see cref="Stack"/> has been disposed</exception>
     /// <exception cref="InvalidOperationException">If the <see cref="Stack"/> is empty</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Value Peek()
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
@@ -356,11 +367,13 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     }
 
     /// <inheritdoc cref="IEnumerable{T}.GetEnumerator()" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public StackRefEnumerator GetEnumerator() => new(this);
 
     /// <summary>
     /// Grows this <see cref="Stack"/> and reallocates memory
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Grow() => this.Capacity *= GROW_FACTOR;
 
     /// <summary>
@@ -388,9 +401,11 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     }
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator<Value> IEnumerable<Value>.GetEnumerator() => new StackEnumerator(this);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator IEnumerable.GetEnumerator() => new StackEnumerator(this);
 
     /// <summary>
@@ -470,9 +485,9 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
         }
 
         /// <inheritdoc />
-        void IDisposable.Dispose() { }
+        object IEnumerator.Current => this.Current;
 
         /// <inheritdoc />
-        object IEnumerator.Current => this.Current;
+        void IDisposable.Dispose() { }
     }
 }
