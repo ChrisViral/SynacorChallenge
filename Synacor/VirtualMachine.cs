@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
@@ -182,7 +182,7 @@ public sealed partial class VirtualMachine : IDisposable
             {
                 // 0 - halt - Halt execution
                 case Opcode.HALT:
-                    this.State = State.HALTED;
+                    Halt();
                     return 0;
 
                 // 1 - set a b - Set register a to b
@@ -345,7 +345,7 @@ public sealed partial class VirtualMachine : IDisposable
 
                 // 18 - ret - Pop the stack and jump to the address it specified, halt if the stack is empty (failure branch)
                 case Opcode.RET:
-                    this.State = State.HALTED;
+                    Halt();
                     return 0;
 
                 // 19 - out a - Output the value of a as an ASCII character
@@ -380,8 +380,10 @@ public sealed partial class VirtualMachine : IDisposable
             }
         }
 
-        // Virtual Machine completed gracefully
-        return 0;
+        // Virtual Machine in an unexpected way
+        this.State = State.ERROR;
+        LogUnexpectedTermination(this.Logger);
+        return 1;
     }
 
     /// <summary>

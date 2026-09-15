@@ -13,6 +13,16 @@ public partial class VirtualMachine
     private unsafe Opcode GetOpcode() => *this.ip++;
 
     /// <summary>
+    /// Halts the <see cref="VirtualMachine"/>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void Halt()
+    {
+        this.State = State.HALTED;
+        LogHalted(this.Logger);
+    }
+
+    /// <summary>
     /// Increments the instruction pointer
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
