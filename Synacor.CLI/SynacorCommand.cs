@@ -27,25 +27,20 @@ public partial class SynacorCommand(ILoggerFactory factory, ConsoleProvider prov
     /// <inheritdoc />
     public async Task<int> RunAsync(CliContext cliContext)
     {
-        VirtualMachine? vm = null;
         try
         {
             LogCreateVM(this.Logger);
-            vm = new VirtualMachine(this.factory.CreateLogger<VirtualMachine>(), this.provider, this.provider);
+            using VirtualMachine vm = new(this.factory.CreateLogger<VirtualMachine>(), this.provider, this.provider);
             await vm.LoadFile(this.Data, cliContext.CancellationToken);
 
             LogRunVM(this.Logger);
-            vm.Run(cliContext.CancellationToken);
+            int result = await vm.Run(cliContext.CancellationToken);
+            return result;
         }
         catch (Exception e)
         {
             LogVMThrewException(this.Logger, e);
+            return 1;
         }
-        finally
-        {
-            vm?.Dispose();
-        }
-
-        return vm?.State is not State.ERROR ? 0 : 1;
     }
 }

@@ -166,7 +166,7 @@ public sealed partial class VirtualMachine : IDisposable
     /// <param name="token">Cancellation token</param>
     /// <exception cref="OperationCanceledException">If the operation is cancelled via</exception>
     /// ReSharper disable once CognitiveComplexity
-    public unsafe void Run(CancellationToken token)
+    public async Task<int> Run(CancellationToken token = default)
     {
         this.State = State.RUNNING;
         while (this.State is State.RUNNING)
@@ -175,22 +175,22 @@ public sealed partial class VirtualMachine : IDisposable
             {
                 LogOperationCancelled(this.Logger);
                 this.State = State.CANCELLED;
-                return;
+                token.ThrowIfCancellationRequested();
             }
 
-            Opcode opcode = *this.ip++;
+            Opcode opcode = GetOpcode();
             switch (opcode)
             {
                 // 0 - halt - Halt execution
                 case Opcode.HALT:
                     this.State = State.HALTED;
-                    break;
+                    return 0;
 
                 // 1 - set a b - Set register a to b
                 case Opcode.SET:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
                     register = a;
                     break;
                 }
@@ -198,7 +198,7 @@ public sealed partial class VirtualMachine : IDisposable
                 // 2 - push a - Push the value a onto the stack
                 case Opcode.PUSH:
                 {
-                    Value a = GetValue(this.ip++);
+                    Value a = GetValue();
                     this.stack.Push(a);
                     break;
                 }
@@ -206,7 +206,7 @@ public sealed partial class VirtualMachine : IDisposable
                 // 3 - pop a - Pop the top value of the stack and store it into a (success branch)
                 case Opcode.POP when this.stack.TryPop(out Value value):
                 {
-                    ref Value register = ref GetRegister(this.ip++);
+                    ref Value register = ref GetRegister();
                     register = value;
                     break;
                 }
@@ -215,14 +215,14 @@ public sealed partial class VirtualMachine : IDisposable
                 case Opcode.POP:
                     LogStackEmpty(this.Logger);
                     this.State = State.ERROR;
-                    break;
+                    return 1;
 
                 // 4 - eq a b c - Set a to 1 if b equals c, otherwise set it to 0
                 case Opcode.EQ:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
-                    Value b = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
+                    Value b = GetValue();
                     register = a == b ? Value.True : Value.False;
                     break;
                 }
@@ -230,9 +230,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 5 - gt a b c - Set a to 1 if b is greater than c, otherwise set it to 0
                 case Opcode.GT:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
-                    Value b = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
+                    Value b = GetValue();
                     register = a > b ? Value.True : Value.False;
                     break;
                 }
@@ -240,9 +240,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 6 - jmp a - Jump to a
                 case Opcode.JMP:
                 // 7 - jt a b - Jump to b if a is true (success branch)
-                case Opcode.JT when GetValue(this.ip++) != Value.False:
+                case Opcode.JT when GetValue() != Value.False:
                 // 8 - jf a b - Jump to b if a false (success branch)
-                case Opcode.JF when GetValue(this.ip++) == Value.False:
+                case Opcode.JF when GetValue() == Value.False:
                     Jump();
                     break;
 
@@ -250,15 +250,15 @@ public sealed partial class VirtualMachine : IDisposable
                 case Opcode.JT:
                 // 8 - jf a b - Jump to b if a false (failure branch)
                 case Opcode.JF:
-                    this.ip++;
+                    MoveNext();
                     break;
 
                 // 9 - add a b c - Store into a the sum of b and c
                 case Opcode.ADD:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
-                    Value b = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
+                    Value b = GetValue();
                     register = a + b;
                     break;
                 }
@@ -266,9 +266,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 10 - mult a b c - Store into a the product of b and c
                 case Opcode.MULT:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
-                    Value b = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
+                    Value b = GetValue();
                     register = a * b;
                     break;
                 }
@@ -276,9 +276,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 11 - mop a b c - Store into a the modulus of b and c
                 case Opcode.MOD:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
-                    Value b = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
+                    Value b = GetValue();
                     register = a % b;
                     break;
                 }
@@ -286,9 +286,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 12 - and a b c - Store into a the bitwise and of b and c
                 case Opcode.AND:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
-                    Value b = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
+                    Value b = GetValue();
                     register = a & b;
                     break;
                 }
@@ -296,9 +296,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 13 - or a b c - Store into a the bitwise or of b and c
                 case Opcode.OR:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
-                    Value b = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
+                    Value b = GetValue();
                     register = a | b;
                     break;
                 }
@@ -306,8 +306,8 @@ public sealed partial class VirtualMachine : IDisposable
                 // 14 - not a b - Store into a the bitwise inverse of b
                 case Opcode.NOT:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value a = GetValue(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value a = GetValue();
                     register = ~a;
                     break;
                 }
@@ -315,8 +315,8 @@ public sealed partial class VirtualMachine : IDisposable
                 // 15 - rmem a b - Store into register a the value at memory address b
                 case Opcode.RMEM:
                 {
-                    ref Value register = ref GetRegister(this.ip++);
-                    Value mem = GetMemory(this.ip++);
+                    ref Value register = ref GetRegister();
+                    Value mem = GetMemory();
                     register = mem;
                     break;
                 }
@@ -324,8 +324,8 @@ public sealed partial class VirtualMachine : IDisposable
                 // 16 - wmem a b - Write the value of b into memory address a
                 case Opcode.WMEM:
                 {
-                    ref Value mem = ref GetMemory(this.ip++);
-                    Value a = GetValue(this.ip++);
+                    ref Value mem = ref GetMemory();
+                    Value a = GetValue();
                     mem = a;
                     break;
                 }
@@ -333,7 +333,7 @@ public sealed partial class VirtualMachine : IDisposable
                 // 17 - call a - Write the next instruction address to the stack, then jump to a
                 case Opcode.CALL:
                 {
-                    Value address = GetAddress(this.ip + 1);
+                    Value address = GetAddress(1);
                     this.stack.Push(address);
                     Jump();
                     break;
@@ -347,12 +347,12 @@ public sealed partial class VirtualMachine : IDisposable
                 // 18 - ret - Pop the stack and jump to the address it specified, halt if the stack is empty (failure branch)
                 case Opcode.RET:
                     this.State = State.HALTED;
-                    break;
+                    return 0;
 
                 // 19 - out a - Output the value of a as an ASCII character
                 case Opcode.OUT:
                 {
-                    Value a = GetValue(this.ip++);
+                    Value a = GetValue();
                     this.output.Write((char)a);
                     break;
                 }
@@ -373,71 +373,10 @@ public sealed partial class VirtualMachine : IDisposable
                     throw new InvalidEnumArgumentException(nameof(opcode), (int)opcode, typeof(Opcode));
             }
         }
+
+        // Virtual Machine completed gracefully
+        return 0;
     }
-
-    /// <summary>
-    /// Gets the <see cref="Value"/> at a given address, dereferencing registers if needed
-    /// </summary>
-    /// <param name="address">Address to get the <see cref="Value"/> at</param>
-    /// <returns>The <see cref="Value"/> numerical value or register value of <paramref name="address"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe Value GetValue(Value* address)
-    {
-        Value value = *address;
-        return value.IsRegister
-                       ? *(this.memory + value)
-                       : value;
-    }
-
-    /// <summary>
-    /// Gets a reference to the register pointed to by the given <see cref="Value"/>
-    /// </summary>
-    /// <param name="address">Register address</param>
-    /// <returns>A reference to the register pointed to by <paramref name="address"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe ref Value GetRegister(Value* address)
-    {
-        Value register = *address;
-#if DEBUG
-        register.ThrowIfNumber();
-#endif
-        return ref *(this.memory + register);
-    }
-
-    /// <summary>
-    /// Gets a reference to the <see cref="Value"/> in the given memory address
-    /// </summary>
-    /// <param name="address">Memory address</param>
-    /// <returns>A reference to the memory pointed to by <paramref name="address"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe ref Value GetMemory(Value* address)
-    {
-        Value offset = *address;
-        return ref offset.IsRegister
-                   ? ref *(this.memory + *(this.memory + offset))
-                   : ref *(this.memory + offset);
-    }
-
-    /// <summary>
-    /// Jumps to the instruction pointed at by the current instruction pointer
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void Jump() => this.ip = this.memory + GetValue(this.ip);
-
-    /// <summary>
-    /// Jumps to the instruction at the given address
-    /// </summary>
-    /// <param name="adress">Adress to jump to</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void Jump(Value adress) => this.ip = this.memory + adress;
-
-    /// <summary>
-    /// Gets the numerical address of the given memory pointer
-    /// </summary>
-    /// <param name="pointer">Memory pointer to get the address for</param>
-    /// <returns>The memory address of the given memory pointer</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe Value GetAddress(Value* pointer) => (ushort)(pointer - this.memory);
 
     /// <summary>
     /// Resets this <see cref="VirtualMachine"/> to it's default state
