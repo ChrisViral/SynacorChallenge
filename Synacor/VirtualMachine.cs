@@ -1,7 +1,6 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FastEnumUtility;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Synacor.Data;
@@ -353,7 +352,20 @@ public sealed partial class VirtualMachine : IDisposable
                 case Opcode.OUT:
                 {
                     Value a = GetValue();
+                    this.State = State.IO;
                     await this.output.Write(a, token).ConfigureAwait(false);
+                    this.State = State.RUNNING;
+                    break;
+                }
+
+                // 20 - in a - Read a character from the input, and store it's ASCII value into a
+                case Opcode.IN:
+                {
+                    this.State = State.IO;
+                    char value = await this.input.Read(token).ConfigureAwait(false);
+                    this.State = State.RUNNING;
+                    ref Value register = ref GetRegister();
+                    register = value;
                     break;
                 }
 
@@ -363,12 +375,6 @@ public sealed partial class VirtualMachine : IDisposable
 
                 default:
                     this.State = State.ERROR;
-                    if (FastEnum.IsDefined(opcode))
-                    {
-                        LogUnimplementedOpcode(this.Logger, opcode.FastToString(), (int)opcode);
-                        throw new NotImplementedException($"Opcode {opcode.FastToString()} not yet implemented");
-                    }
-
                     LogUnknownOpcode(this.Logger, (int)opcode);
                     throw new InvalidEnumArgumentException(nameof(opcode), (int)opcode, typeof(Opcode));
             }

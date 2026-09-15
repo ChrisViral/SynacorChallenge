@@ -11,7 +11,7 @@ public interface IInputProvider
     /// <summary>
     /// Reads a character from the input
     /// </summary>
-    /// <param name="token">The canbcellation token</param>
+    /// <param name="token">The cancellation token</param>
     /// <returns>Character read from the input</returns>
-    Task<char> Read(CancellationToken token = default);
+    ValueTask<char> Read(CancellationToken token = default);
 }
