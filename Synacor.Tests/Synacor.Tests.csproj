@@ -47,8 +47,4 @@
     <ProjectReference Include="..\Synacor\Synacor.csproj" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(CI)' != 'true'">
-    <Exec Command="dotnet test --no-build --logger:trx" />
-  </Target>
-
 </Project>

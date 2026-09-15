@@ -12,27 +12,19 @@ namespace Synacor;
 public sealed partial class VirtualMachine : IDisposable
 {
     /// <summary>
-    /// Max numerical value
-    /// </summary>
-    private const int MAX_VALUE = short.MaxValue;
-    /// <summary>
     /// Memory size, in values
     /// </summary>
-    private const int MEMORY_SIZE = MAX_VALUE + 1;
-    /// <summary>
-    /// Amount of registers
-    /// </summary>
-    private const int REGISTER_COUNT = 8;
+    private const int MEMORY_SIZE = 1 << Value.BIT_COUNT;
     /// <summary>
     /// Total buffer size, in values
     /// </summary>
-    private const int BUFFER_SIZE = MEMORY_SIZE + REGISTER_COUNT;
+    private const int BUFFER_SIZE = MEMORY_SIZE + Value.REGISTER_COUNT;
 
     private Stack stack = new();
     private MemoryManager memoryManager;
-    private unsafe ushort* memory;
-    private unsafe ushort* ip;
-    private unsafe ushort* registers;
+    private unsafe Value* memory;
+    private unsafe Value* ip;
+    private unsafe Value* registers;
     private bool hasData;
 
     /// <summary>
@@ -76,7 +68,7 @@ public sealed partial class VirtualMachine : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
         if (!file.Exists) throw new FileNotFoundException("Data file to load does not exist", file.FullName);
-        if (file.Length > MEMORY_SIZE * sizeof(ushort)) throw new ArgumentException("File size too large for Virtual Machine memory", nameof(file));
+        if (file.Length > MEMORY_SIZE * Value.SIZE) throw new ArgumentException("File size too large for Virtual Machine memory", nameof(file));
 
         // Get memory view
         this.Logger.LogInformation("Loading data file into Virtual Machine memory...");
@@ -102,7 +94,7 @@ public sealed partial class VirtualMachine : IDisposable
     /// <param name="data">Data to load</param>
     /// <exception cref="ObjectDisposedException">If this <see cref="VirtualMachine"/> has been disposed</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="data"/> is too large to fit into the <see cref="VirtualMachine"/>'s memory</exception>
-    public void LoadData(ReadOnlySpan<ushort> data)
+    public void LoadData(ReadOnlySpan<Value> data)
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(data.Length, MEMORY_SIZE, nameof(data));
@@ -129,8 +121,8 @@ public sealed partial class VirtualMachine : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
-        // Cast incoming data to ushort
-        ReadOnlySpan<ushort> castedData = MemoryMarshal.Cast<T, ushort>(data);
+        // Cast incoming data to Value
+        ReadOnlySpan<Value> castedData = MemoryMarshal.Cast<T, Value>(data);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(castedData.Length, MEMORY_SIZE, nameof(data));
 
         // Clear the data if there is any

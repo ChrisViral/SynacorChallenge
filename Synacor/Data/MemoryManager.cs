@@ -1,14 +1,16 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
+using Synacor.Data.DebugViews;
 
 namespace Synacor.Data;
 
 /// <summary>
 /// <see cref="VirtualMachine"/> unmanaged memory block manager
 /// </summary>
-[PublicAPI]
-public sealed unsafe class MemoryManager : MemoryManager<ushort>
+[PublicAPI, DebuggerDisplay("Size = {Length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView))]
+public sealed unsafe class MemoryManager : MemoryManager<Value>
 {
     /// <summary>
     /// Memory block length
@@ -24,7 +26,7 @@ public sealed unsafe class MemoryManager : MemoryManager<ushort>
     /// Buffer start address
     /// </summary>
     /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
-    public ushort* Buffer
+    public Value* Buffer
     {
         get
         {
@@ -49,17 +51,17 @@ public sealed unsafe class MemoryManager : MemoryManager<ushort>
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
         this.Length     = length;
-        this.ByteLength = (nuint)length * sizeof(ushort);
-        this.Buffer     = (ushort*)NativeMemory.AllocZeroed(this.ByteLength);
+        this.ByteLength = (nuint)length * Value.SIZE;
+        this.Buffer     = (Value*)NativeMemory.AllocZeroed(this.ByteLength);
     }
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If this <see cref="MemoryManager"/> has been disposed</exception>
-    public override Span<ushort> GetSpan()
+    public override Span<Value> GetSpan()
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
-        return new Span<ushort>(this.Buffer, this.Length);
+        return new Span<Value>(this.Buffer, this.Length);
     }
 
     /// <inheritdoc />
