@@ -12,5 +12,6 @@ public interface IOutputProvider
     /// Writes the given character to the output
     /// </summary>
     /// <param name="value">Value to write</param>
-    void Write(char value);
+    /// <param name="token">Cancellation token</param>
+    Task Write(char value, CancellationToken token = default);
 }

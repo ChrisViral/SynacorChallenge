@@ -14,6 +14,10 @@ public enum State
     /// </summary>
     RUNNING,
     /// <summary>
+    /// The <see cref="VirtualMachine"/> is waiting for IO
+    /// </summary>
+    IO,
+    /// <summary>
     /// The <see cref="VirtualMachine"/> is halted
     /// </summary>
     HALTED,
