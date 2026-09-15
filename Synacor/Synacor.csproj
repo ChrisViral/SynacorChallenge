@@ -39,7 +39,7 @@
   </ItemGroup>
 
   <Target Name="PostBuildTests" AfterTargets="Build" Condition="'$(CI)' != 'true'">
-    <Exec Command="dotnet test &quot;$(SolutionDir)Synacor.sln&quot; --no-build --logger:trx" IgnoreExitCode="true" ContinueOnError="true" IgnoreStandardErrorWarningFormat="true" >
+    <Exec Command="dotnet test &quot;$(SolutionDir)Synacor.sln&quot; --no-build --logger:console" IgnoreExitCode="true" ContinueOnError="true" IgnoreStandardErrorWarningFormat="true" >
       <Output TaskParameter="ExitCode" PropertyName="TestExitCode" />
     </Exec>
     <Warning Text="One or more tests failed. See the test output above for details." Condition="'$(TestExitCode)' != '0'" />

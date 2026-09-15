@@ -37,10 +37,14 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// </summary>
     private const int MASK = 0x7FFF;
 
-    /// <summary>
-    /// Contained numerical value
-    /// </summary>
+    /// <summary>Numerical value</summary>
     private readonly ushort value;
+
+    /// <summary>
+    /// Raw numerical value of this <see cref="Value"/>
+    /// </summary>
+    /// ReSharper disable once ConvertToAutoPropertyWhenPossible
+    public ushort Raw => this.value;
 
     /// <summary>
     /// If this <see cref="Value"/> contains a number
@@ -50,26 +54,36 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <summary>
     /// If this <see cref="Value"/> contains a register address
     /// </summary>
-    public bool IsRegister => this.value >= MAX_VALUE;
+    public bool IsRegister => this.value > MAX_VALUE;
 
     /// <summary>
     /// The register address of this <see cref="Value"/>
     /// </summary>
-    /// <exception cref="InvalidOperationException">If this <see cref="Value"/> represents a number</exception>
-    public int RegisterAddres
+    /// <exception cref="InvalidOperationException">If this <see cref="Value"/> is not a register address</exception>
+    public int RegisterAddress
     {
         get
         {
             ThrowIfNumber();
 
-            return this.value - MAX_VALUE;
+            return this.value - MAX_VALUE - 1;
         }
     }
 
     /// <summary>
     /// Register address character for this <see cref="Value"/>
     /// </summary>
-    private char RegisterChar => (char)(this.value + ('a' - MAX_VALUE));
+    private char RegisterChar
+    {
+        get
+        {
+#if DEBUG
+            ThrowIfNumber();
+#endif
+
+            return (char)(this.value + ('a' - MAX_VALUE));
+        }
+    }
 
     /// <summary>
     /// Creates a new <see cref="Value"/>
@@ -81,6 +95,20 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         ArgumentOutOfRangeException.ThrowIfGreaterThan(value, MAX_REGISTER);
 
         this.value = value;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="Value"/>
+    /// </summary>
+    /// <param name="value">The numerical value to initialize this to</param>
+    private Value(int value)
+    {
+#if DEBUG
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, MAX_REGISTER);
+#endif
+
+        this.value = (ushort)value;
     }
 
 
@@ -100,7 +128,12 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     public int CompareTo(Value other) => this.value.CompareTo(other.value);
 
     /// <inheritdoc />
-    public int CompareTo(object? obj) => this.value.CompareTo(obj);
+    public int CompareTo(object? obj) => obj switch
+    {
+        null        => 1,
+        Value other => CompareTo(other),
+        _           => throw new ArgumentException("Object must be a Value", nameof(obj))
+    };
 
     /// <summary>
     /// Converts this <see cref="Value"/> to either it's numberical string or register address string
@@ -245,7 +278,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     public static Value Clamp(Value value, Value min, Value max) => Math.Clamp(value.value, min.value, max.value);
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    /// <exception cref="InvalidOperationException">If <paramref name="left"/> or <paramref name="right"/> is a register</exception>
     public static (Value Quotient, Value Remainder) DivRem(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -262,7 +295,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         value.ThrowIfRegister();
 
         rotateAmount %= BIT_COUNT;
-        return (ushort)(((value.value << rotateAmount) | (value.value >> (BIT_COUNT - rotateAmount))) & MASK);
+        return new Value(((value.value << rotateAmount) | (value.value >> (BIT_COUNT - rotateAmount))) & MASK);
     }
 
     /// <inheritdoc />
@@ -272,7 +305,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         value.ThrowIfRegister();
 
         rotateAmount %= BIT_COUNT;
-        return (ushort)(((value.value >> rotateAmount) | (value.value << (BIT_COUNT - rotateAmount))) & MASK);
+        return new Value(((value.value >> rotateAmount) | (value.value << (BIT_COUNT - rotateAmount))) & MASK);
     }
 
     /// <inheritdoc />
@@ -372,14 +405,6 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="value"/> is greater than <see cref="MAX_REGISTER"/></exception>
     public static implicit operator Value(ushort value) => new(value);
 
-    /// <summary>
-    /// Implicit conversion from <see cref="int"/> to <see cref="Value"/>
-    /// </summary>
-    /// <param name="value"><see cref="int"/> to convert to <see cref="Value"/></param>
-    /// <returns>The <see cref="Value"/> value representing this <see cref="int"/></returns>
-    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="value"/> is greater than <see cref="MAX_REGISTER"/></exception>
-    public static implicit operator Value(int value) => new((ushort)value);
-
 
     // === Mathematical Operators ===
 
@@ -399,7 +424,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return -value.value & MASK;
+        return new Value(-value.value & MASK);
     }
 
     /// <inheritdoc />
@@ -408,7 +433,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return (value.value + 1) & MASK;
+        return  new Value((value.value + 1) & MASK);
     }
 
     /// <inheritdoc />
@@ -417,7 +442,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return (value.value - 1) & MASK;
+        return  new Value((value.value - 1) & MASK);
     }
 
     /// <inheritdoc />
@@ -427,7 +452,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return (left.value + right.value) & MASK;
+        return  new Value((left.value + right.value) & MASK);
     }
 
     /// <inheritdoc />
@@ -437,7 +462,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return (left.value - right.value) & MASK;
+        return  new Value((left.value - right.value) & MASK);
     }
 
     /// <inheritdoc />
@@ -447,7 +472,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return (left.value * right.value) & MASK;
+        return  new Value((left.value * right.value) & MASK);
     }
 
     /// <inheritdoc />
@@ -457,7 +482,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return left.value / right.value;
+        return  new Value(left.value / right.value);
     }
 
     /// <inheritdoc />
@@ -467,7 +492,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return left.value % right.value;
+        return  new Value(left.value % right.value);
     }
 
 
@@ -480,7 +505,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return ~value.value & MASK;
+        return  new Value(~value.value & MASK);
     }
 
     /// <inheritdoc />
@@ -490,7 +515,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return left.value & right.value;
+        return  new Value(left.value & right.value);
     }
 
     /// <inheritdoc />
@@ -500,7 +525,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return left.value | right.value;
+        return  new Value(left.value | right.value);
     }
 
     /// <inheritdoc />
@@ -510,7 +535,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
         left.ThrowIfRegister();
         right.ThrowIfRegister();
 
-        return left.value ^ right.value;
+        return  new Value(left.value ^ right.value);
     }
 
     /// <inheritdoc />
@@ -519,7 +544,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return (value.value << shiftAmount) & MASK;
+        return  new Value((value.value << shiftAmount) & MASK);
     }
 
     /// <inheritdoc />
@@ -528,7 +553,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return value.value >> shiftAmount;
+        return  new Value(value.value >> shiftAmount);
     }
 
     /// <inheritdoc />
@@ -537,7 +562,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     {
         value.ThrowIfRegister();
 
-        return value.value >>> shiftAmount;
+        return  new Value(value.value >>> shiftAmount);
     }
 
 

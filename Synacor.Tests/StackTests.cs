@@ -4,6 +4,9 @@ using Value = Synacor.Data.Value;
 
 namespace Synacor.Tests;
 
+/// <summary>
+/// <see cref="Stack"/> unit tests
+/// </summary>
 public sealed class StackTests
 {
     private const ushort VALUES = 5;
@@ -160,7 +163,7 @@ public sealed class StackTests
         Span<Value> values = stackalloc Value[VALUES];
         stack.CopyTo(values);
 
-        for (int i = 0; i < VALUES; i++)
+        for (Value i = 0; i < VALUES; i++)
         {
             values[i].Should().Be(VALUES - i);
             values[i].Should().Be(stack.Pop());
@@ -179,7 +182,7 @@ public sealed class StackTests
         // ReSharper disable once UseCollectionExpression
         Value[] values = stack.ToArray();
 
-        for (int i = 0; i < VALUES; i++)
+        for (Value i = 0; i < VALUES; i++)
         {
             values[i].Should().Be(VALUES - i);
             values[i].Should().Be(stack.Pop());
@@ -334,7 +337,7 @@ public sealed class StackTests
             stack.Capacity.Should().Be(Stack.MIN_CAPACITY);
         }
 
-        stack.Push(stack.Count + 1);
+        stack.Push((ushort)(stack.Count + 1));
         stack.Capacity.Should().Be(Stack.MIN_CAPACITY * Stack.GROW_FACTOR);
         stack.Count.Should().Be(Stack.MIN_CAPACITY + 1);
     }
@@ -413,7 +416,7 @@ public sealed class StackTests
         stack.Pop();
         stack.Capacity.Should().Be(newCapacity / Stack.GROW_FACTOR);
 
-        Value expectedValue = shrinkCount;
+        Value expectedValue = (ushort)shrinkCount;
         foreach (Value value in stack)
         {
             value.Should().Be(expectedValue);
@@ -478,7 +481,7 @@ public sealed class StackTests
         stack.TryPop(out _);
         stack.Capacity.Should().Be(newCapacity / Stack.GROW_FACTOR);
 
-        Value expectedValue = shrinkCount;
+        Value expectedValue = (ushort)shrinkCount;
         foreach (Value value in stack)
         {
             value.Should().Be(expectedValue);
