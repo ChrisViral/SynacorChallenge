@@ -2,6 +2,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using FastEnumUtility;
 using JetBrains.Annotations;
 
 namespace Synacor.Data;
@@ -37,24 +39,55 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// </summary>
     private const int MASK = 0x7FFF;
 
-    /// <summary>Numerical value</summary>
+    /// <summary>
+    /// <see cref="Value"/> representing <see langword="true"/>
+    /// </summary>
+    public static readonly Value True = 1;
+
+    /// <summary>
+    /// <see cref="Value"/> representing <see langword="false"/>
+    /// </summary>
+    public static readonly Value False = 0;
+
+    /// <summary> Numerical value </summary>
     private readonly ushort value;
 
     /// <summary>
     /// Raw numerical value of this <see cref="Value"/>
     /// </summary>
     /// ReSharper disable once ConvertToAutoPropertyWhenPossible
-    public ushort Raw => this.value;
+    public ushort Raw
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => this.value;
+    }
 
     /// <summary>
     /// If this <see cref="Value"/> contains a number
     /// </summary>
-    public bool IsNumber => this.value <= MAX_VALUE;
+    public bool IsNumber
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => this.value <= MAX_VALUE;
+    }
 
     /// <summary>
     /// If this <see cref="Value"/> contains a register address
     /// </summary>
-    public bool IsRegister => this.value > MAX_VALUE;
+    public bool IsRegister
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => this.value > MAX_VALUE;
+    }
+
+    /// <summary>
+    /// If this <see cref="Value"/> is a valid <see cref="Opcode"/> value
+    /// </summary>
+    public bool IsOpcode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => FastEnum.IsDefined((Opcode)this.value);
+    }
 
     /// <summary>
     /// The register address of this <see cref="Value"/>
@@ -62,6 +95,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <exception cref="InvalidOperationException">If this <see cref="Value"/> is not a register address</exception>
     public int RegisterAddress
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             ThrowIfNumber();
@@ -75,6 +109,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// </summary>
     private char RegisterChar
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
 #if DEBUG
@@ -116,18 +151,23 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Value other) => this.value == other.value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals([NotNullWhen(true)] object? obj) => obj is Value other && Equals(other);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => this.value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CompareTo(Value other) => this.value.CompareTo(other.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CompareTo(object? obj) => obj switch
     {
         null        => 1,
@@ -139,19 +179,31 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// Converts this <see cref="Value"/> to either it's numberical string or register address string
     /// </summary>
     /// <returns>The string representation of this <see cref="Value"/></returns>
-    public override string ToString() => this.IsNumber
-                                             ? this.value.ToString()
-                                             : this.RegisterChar.ToString();
+    public override string ToString()
+    {
+        if (this.IsRegister) return this.RegisterChar.ToString();
+        return this.IsOpcode
+                   ? $"({((Opcode)this.value).FastToString()}) {this.value}"
+                   : this.value.ToString();
+    }
 
     /// <inheritdoc />
-    public string ToString(IFormatProvider? provider) => this.IsNumber
-                                                             ? this.value.ToString(provider)
-                                                             : this.RegisterChar.ToString(provider);
+    public string ToString(IFormatProvider? provider)
+    {
+        if (this.IsRegister) return this.RegisterChar.ToString(provider);
+        return this.IsOpcode
+                   ? $"({((Opcode)this.value).FastToString()}) {this.value.ToString(provider)}"
+                   : this.value.ToString(provider);
+    }
 
     /// <inheritdoc />
-    public string ToString(string? format, IFormatProvider? formatProvider) => this.IsNumber
-                                                                                   ? this.value.ToString(format, formatProvider)
-                                                                                   : this.RegisterChar.ToString(formatProvider);
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        if (this.IsRegister) return this.RegisterChar.ToString(formatProvider);
+        return this.IsOpcode
+                   ? $"({((Opcode)this.value).FastToString()}) {this.value.ToString(format, formatProvider)}"
+                   : this.value.ToString(format, formatProvider);
+    }
 
     /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
@@ -170,12 +222,14 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TypeCode GetTypeCode() => this.value.GetTypeCode();
 
     /// <summary>
     /// Ensures this <see cref="Value"/> is not a numerical value
     /// </summary>
     /// <exception cref="InvalidOperationException">When <see cref="IsNumber"/> is <see langword="true"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ThrowIfNumber()
     {
         if (this.IsNumber)
@@ -188,6 +242,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// Ensures this <see cref="Value"/> is not a register address
     /// </summary>
     /// <exception cref="InvalidOperationException">When <see cref="IsRegister"/> is <see langword="true"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ThrowIfRegister()
     {
         if (this.IsRegister)
@@ -202,18 +257,22 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Parse(string s, IFormatProvider? provider) => ushort.Parse(s, provider);
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => ushort.Parse(s, provider);
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider) => ushort.Parse(s, style, provider);
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">If the result is greater than <see cref="MAX_REGISTER"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Parse(string s, NumberStyles style, IFormatProvider? provider) => ushort.Parse(s, style, provider);
 
     /// <inheritdoc />
@@ -269,12 +328,15 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="ushort.Min" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Min(Value x, Value y) => Math.Min(x.value, y.value);
 
     /// <inheritdoc cref="ushort.Max" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Max(Value x, Value y) => Math.Max(x.value, y.value);
 
     /// <inheritdoc cref="ushort.Clamp" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Clamp(Value value, Value min, Value max) => Math.Clamp(value.value, min.value, max.value);
 
     /// <inheritdoc />
@@ -309,19 +371,24 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Sign(Value value) => value.value == 0 ? 0 : 1;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsEvenInteger(Value value) => value.IsNumber && ushort.IsEvenInteger(value.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsOddInteger(Value value) => value.IsNumber && ushort.IsOddInteger(value.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsPow2(Value value) => value.IsNumber && ushort.IsPow2(value.value);
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Log2(Value value)
     {
         value.ThrowIfRegister();
@@ -331,6 +398,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value PopCount(Value value)
     {
         value.ThrowIfRegister();
@@ -340,6 +408,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value LeadingZeroCount(Value value)
     {
         value.ThrowIfRegister();
@@ -349,6 +418,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value TrailingZeroCount(Value value)
     {
         value.ThrowIfRegister();
@@ -395,6 +465,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// </summary>
     /// <param name="value"><see cref="Value"/> to convert to <see cref="ushort"/></param>
     /// <returns>The <see cref="ushort"/> value contained within this <see cref="Value"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator ushort(Value value) => value.value;
 
     /// <summary>
@@ -403,7 +474,25 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <param name="value"><see cref="ushort"/> to convert to <see cref="Value"/></param>
     /// <returns>The <see cref="Value"/> value representing this <see cref="ushort"/></returns>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="value"/> is greater than <see cref="MAX_REGISTER"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Value(ushort value) => new(value);
+
+    /// <summary>
+    /// Implicit conversion from <see cref="Value"/> to <see cref="Opcode"/>
+    /// </summary>
+    /// <param name="value"><see cref="Value"/> to convert to <see cref="Opcode"/></param>
+    /// <returns>The <see cref="Opcode"/> value contained within this <see cref="Value"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Opcode(Value value) => (Opcode)value.value;
+
+    /// <summary>
+    /// Implicit conversion from <see cref="Opcode"/> to <see cref="Value"/>
+    /// </summary>
+    /// <param name="opcode"><see cref="Opcode"/> to convert to <see cref="Value"/></param>
+    /// <returns>The <see cref="Value"/> value representing this <see cref="Opcode"/></returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="opcode"/> is greater than <see cref="MAX_REGISTER"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Value(Opcode opcode) => new((ushort)opcode);
 
 
     // === Mathematical Operators ===
@@ -411,6 +500,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator +(Value value)
     {
         value.ThrowIfRegister();
@@ -420,6 +510,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator -(Value value)
     {
         value.ThrowIfRegister();
@@ -429,6 +520,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator ++(Value value)
     {
         value.ThrowIfRegister();
@@ -438,6 +530,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator --(Value value)
     {
         value.ThrowIfRegister();
@@ -447,6 +540,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator +(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -457,6 +551,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator -(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -467,6 +562,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator *(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -477,6 +573,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator /(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -487,6 +584,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator %(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -501,6 +599,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator ~(Value value)
     {
         value.ThrowIfRegister();
@@ -510,6 +609,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator &(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -520,6 +620,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator |(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -530,6 +631,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If either <paramref name="left"/> or <paramref name="right"/> are registers</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator ^(Value left, Value right)
     {
         left.ThrowIfRegister();
@@ -540,6 +642,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator <<(Value value, int shiftAmount)
     {
         value.ThrowIfRegister();
@@ -549,6 +652,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator >>(Value value, int shiftAmount)
     {
         value.ThrowIfRegister();
@@ -558,6 +662,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">If <paramref name="value"/> is a register</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value operator >>>(Value value, int shiftAmount)
     {
         value.ThrowIfRegister();
@@ -570,21 +675,27 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Value left, Value right) => left.value == right.value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Value left, Value right) => left.value != right.value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator >(Value left, Value right) => left.value > right.value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator >=(Value left, Value right) => left.value >= right.value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator <(Value left, Value right) => left.value < right.value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator <=(Value left, Value right) => left.value <= right.value;
 
 
@@ -616,6 +727,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     int IBinaryInteger<Value>.GetByteCount() => sizeof(ushort);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     int IBinaryInteger<Value>.GetShortestBitLength() => (sizeof(ushort) * 8) - ushort.LeadingZeroCount(this.value);
 
     /// <inheritdoc />
@@ -681,39 +793,51 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
                                                                                : throw new ArgumentException("Destination too short", nameof(destination));
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     bool IConvertible.ToBoolean(IFormatProvider? provider) => Convert.ToBoolean(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     char IConvertible.ToChar(IFormatProvider? provider) => Convert.ToChar(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     sbyte IConvertible.ToSByte(IFormatProvider? provider) => Convert.ToSByte(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     byte IConvertible.ToByte(IFormatProvider? provider) => Convert.ToByte(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     short IConvertible.ToInt16(IFormatProvider? provider) => Convert.ToInt16(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     ushort IConvertible.ToUInt16(IFormatProvider? provider) => Convert.ToUInt16(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     int IConvertible.ToInt32(IFormatProvider? provider) => Convert.ToInt32(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     uint IConvertible.ToUInt32(IFormatProvider? provider) => Convert.ToUInt32(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     long IConvertible.ToInt64(IFormatProvider? provider) => Convert.ToInt64(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     ulong IConvertible.ToUInt64(IFormatProvider? provider) => Convert.ToUInt64(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     float IConvertible.ToSingle(IFormatProvider? provider) => Convert.ToSingle(this.value);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double IConvertible.ToDouble(IFormatProvider? provider) => Convert.ToDouble(this.value);
 
     /// <inheritdoc />
@@ -721,70 +845,89 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
 
     /// <inheritdoc />
     /// <exception cref="InvalidCastException">Always thrown by this method</exception>
-    [DoesNotReturn]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
     DateTime IConvertible.ToDateTime(IFormatProvider? provider) => throw new InvalidCastException("Cannot case Value to DateTime");
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)this.value).ToType(conversionType, provider);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Value INumberBase<Value>.Abs(Value value) => value;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsZero(Value value) => value.value is 0;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsPositive(Value value) => true;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsNegative(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsInteger(Value value) => value.IsNumber;
 
     /// <inheritdoc />
     static bool INumberBase<Value>.IsRealNumber(Value value) => value.IsNumber;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsComplexNumber(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsImaginaryNumber(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsCanonical(Value value) => true;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsNormal(Value value) => value.value is not 0;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsSubnormal(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsFinite(Value value) => true;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsInfinity(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsPositiveInfinity(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsNegativeInfinity(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool INumberBase<Value>.IsNaN(Value value) => false;
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Value INumberBase<Value>.MaxMagnitude(Value x, Value y) => Max(x, y);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Value INumberBase<Value>.MaxMagnitudeNumber(Value x, Value y) => Max(x, y);
 
     /// <inheritdoc />
     static Value INumberBase<Value>.MinMagnitude(Value x, Value y) => Min(x, y);
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Value INumberBase<Value>.MinMagnitudeNumber(Value x, Value y) => Min(x, y);
 
     /// <inheritdoc />
@@ -801,6 +944,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryConvertFromChecked" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertFromChecked<TOther, TValue>(TOther value, out TValue result)
         where TOther : INumberBase<TOther>
         where TValue : unmanaged, INumberBase<TValue>
@@ -822,6 +966,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryConvertFromSaturating" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertFromSaturating<TOther, TValue>(TOther value, out TValue result)
         where TOther : INumberBase<TOther>
         where TValue : unmanaged, INumberBase<TValue>
@@ -843,6 +988,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryConvertFromTruncating" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertFromTruncating<TOther, TValue>(TOther value, out TValue result)
         where TOther : INumberBase<TOther>
         where TValue : unmanaged, INumberBase<TValue>
@@ -857,6 +1003,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryConvertToChecked" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertToChecked<TOther, TValue>(TValue value, [MaybeNullWhen(false)] out TOther result)
         where TOther : INumberBase<TOther>
         where TValue : unmanaged, INumberBase<TValue>
@@ -871,6 +1018,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryConvertToSaturating" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertToSaturating<TOther, TValue>(TValue value, [MaybeNullWhen(false)] out TOther result)
         where TOther : INumberBase<TOther>
         where TValue : unmanaged, INumberBase<TValue>
@@ -885,6 +1033,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryConvertToTruncating" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryConvertToTruncating<TOther, TValue>(TValue value, [MaybeNullWhen(false)] out TOther result)
         where TOther : INumberBase<TOther>
         where TValue : unmanaged, INumberBase<TValue>
@@ -906,6 +1055,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryReadBigEndian" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryReadBigEndian<TOther>(ReadOnlySpan<byte> source, bool isUnsigned, out TOther value)
         where TOther : IBinaryInteger<TOther>
     {
@@ -926,6 +1076,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     }
 
     /// <inheritdoc cref="TryReadLittleEndian" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryReadLittleEndian<TOther>(ReadOnlySpan<byte> source, bool isUnsigned, out TOther value)
         where TOther : IBinaryInteger<TOther>
     {

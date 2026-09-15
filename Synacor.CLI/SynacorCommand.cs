@@ -7,9 +7,10 @@ namespace Synacor.CLI;
 /// Synacor Challenge Virtual Machine interface
 /// </summary>
 [CliCommand(Description = "Synacor Challenge Virtual Machine interface")]
-public class SynacorCommand(ILoggerFactory factory) : ICliRunAsyncWithContextAndReturn
+public partial class SynacorCommand(ILoggerFactory factory, ConsoleProvider provider) : ICliRunAsyncWithContextAndReturn
 {
     private readonly ILoggerFactory factory = factory;
+    private readonly ConsoleProvider provider = provider;
 
     /// <summary>
     /// Logger instance
@@ -26,18 +27,25 @@ public class SynacorCommand(ILoggerFactory factory) : ICliRunAsyncWithContextAnd
     /// <inheritdoc />
     public async Task<int> RunAsync(CliContext cliContext)
     {
-        this.Logger.LogInformation("Creating virtual machine...");
+        VirtualMachine? vm = null;
         try
         {
-            using VirtualMachine vm = new(this.factory.CreateLogger<VirtualMachine>());
+            LogCreateVM(this.Logger);
+            vm = new VirtualMachine(this.factory.CreateLogger<VirtualMachine>(), this.provider, this.provider);
             await vm.LoadFile(this.Data, cliContext.CancellationToken);
+
+            LogRunVM(this.Logger);
+            vm.Run(cliContext.CancellationToken);
         }
         catch (Exception e)
         {
-            this.Logger.LogError(e, "Exception occured while runing the Virtual Machine, exiting...");
-            return 1;
+            LogVMThrewException(this.Logger, e);
+        }
+        finally
+        {
+            vm?.Dispose();
         }
 
-        return 0;
+        return vm?.State is not State.ERROR ? 0 : 1;
     }
 }

@@ -42,8 +42,7 @@ public sealed class StackTests
         Value* pointer = stack.top;
         for (Value i = VALUES; i > 0; i--)
         {
-            pointer--;
-            (*pointer).Should().Be(i);
+            (*--pointer).Should().Be(i);
         }
     }
 

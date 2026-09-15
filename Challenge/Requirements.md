@@ -31,7 +31,7 @@ Good luck!
 
 ## == Hints ==
 - Start with operations 0, 19, and 21.
-- Here's a code for the challenge website: LDOb7UGhTi.
+- Here's a code for the challenge website: LDOb7UGhTi
 - The program "9,32768,32769,4,19,32768" occupies six memory addresses and should:
   - Store into register 0 the sum of 4 and the value contained in register 1.
   - Output to the terminal the character with the ascii code contained in register 0.

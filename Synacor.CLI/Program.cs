@@ -11,10 +11,8 @@ Cli.Ext.ConfigureServices(services =>
                 .Enrich.FromLogContext()
                 .CreateLogger();
 
-    services.AddLogging(builder =>
-    {
-        builder.AddSerilog(Log.Logger, true);
-    });
+    services.AddSingleton<ConsoleProvider>()
+            .AddLogging(builder => builder.AddSerilog(Log.Logger, true));
 });
 
 // If no args passed, default to help

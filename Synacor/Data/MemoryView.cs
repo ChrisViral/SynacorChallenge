@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
-using JetBrains.Annotations;
+using System.Runtime.CompilerServices;
 using Synacor.Data.DebugViews;
 
 namespace Synacor.Data;
@@ -9,23 +9,12 @@ namespace Synacor.Data;
 /// Non-owning view over a <see cref="MemoryManager"/>
 /// </summary>
 /// <typeparam name="T">View value type</typeparam>
-[PublicAPI, DebuggerDisplay("Size = {length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView<>))]
-public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
+[DebuggerDisplay("Size = {length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView<>))]
+internal sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
 {
     private MemoryManager memoryManager;
     private T* pointer;
     private readonly int length;
-
-    /// <summary>
-    /// Creates a view over the given <see cref="MemoryManager"/>
-    /// </summary>
-    /// <param name="memoryManager">Memory block to create the view over</param>
-    public MemoryView(MemoryManager memoryManager)
-    {
-        this.memoryManager = memoryManager;
-        this.pointer = (T*)memoryManager.Buffer;
-        this.length = (int)memoryManager.ByteLength / sizeof(T);
-    }
 
     /// <summary>
     /// Creates a view at a given offset and length over the given <see cref="MemoryManager"/>
@@ -51,6 +40,7 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If the underlying memory has been disposed</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override Span<T> GetSpan()
     {
         ObjectDisposedException.ThrowIf(this.memoryManager.IsDisposed, this.memoryManager);
@@ -72,6 +62,7 @@ public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">If the underlying memory has been disposed</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Unpin() => ObjectDisposedException.ThrowIf(this.memoryManager.IsDisposed, this.memoryManager);
 
     /// <inheritdoc />
