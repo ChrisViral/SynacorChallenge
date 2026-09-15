@@ -13,6 +13,9 @@ public partial class VirtualMachine
     [LoggerMessage(LogLevel.Error, "An unknown Opcode value ({Opcode}) has been found, aborting...")]
     static partial void LogUnknownOpcode(ILogger logger, int opcode);
 
-    [LoggerMessage(LogLevel.Warning, "The VirtualMachine's operation has been cancelled.")]
+    [LoggerMessage(LogLevel.Warning, "The VirtualMachine's operation has been cancelled")]
     static partial void LogOperationCancelled(ILogger logger);
+
+    [LoggerMessage(LogLevel.Critical, "Tried to pop a value from the stack but it was empty")]
+    static partial void LogStackEmpty(ILogger logger);
 }
