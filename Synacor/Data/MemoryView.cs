@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
-using JetBrains.Annotations;
 using Synacor.Data.DebugViews;
 
 namespace Synacor.Data;
@@ -9,8 +8,8 @@ namespace Synacor.Data;
 /// Non-owning view over a <see cref="MemoryManager"/>
 /// </summary>
 /// <typeparam name="T">View value type</typeparam>
-[PublicAPI, DebuggerDisplay("Size = {length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView<>))]
-public sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
+[DebuggerDisplay("Size = {length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView<>))]
+internal sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanaged
 {
     private MemoryManager memoryManager;
     private T* pointer;

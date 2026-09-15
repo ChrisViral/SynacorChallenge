@@ -37,7 +37,17 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// </summary>
     private const int MASK = 0x7FFF;
 
-    /// <summary>Numerical value</summary>
+    /// <summary>
+    /// <see cref="Value"/> representing <see langword="true"/>
+    /// </summary>
+    public static readonly Value True = 1;
+
+    /// <summary>
+    /// <see cref="Value"/> representing <see langword="false"/>
+    /// </summary>
+    public static readonly Value False = 0;
+
+    /// <summary> Numerical value </summary>
     private readonly ushort value;
 
     /// <summary>
@@ -404,6 +414,21 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     /// <returns>The <see cref="Value"/> value representing this <see cref="ushort"/></returns>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="value"/> is greater than <see cref="MAX_REGISTER"/></exception>
     public static implicit operator Value(ushort value) => new(value);
+
+    /// <summary>
+    /// Implicit conversion from <see cref="Value"/> to <see cref="Opcode"/>
+    /// </summary>
+    /// <param name="value"><see cref="Value"/> to convert to <see cref="Opcode"/></param>
+    /// <returns>The <see cref="Opcode"/> value contained within this <see cref="Value"/></returns>
+    public static implicit operator Opcode(Value value) => (Opcode)value.value;
+
+    /// <summary>
+    /// Implicit conversion from <see cref="Opcode"/> to <see cref="Value"/>
+    /// </summary>
+    /// <param name="opcode"><see cref="Opcode"/> to convert to <see cref="Value"/></param>
+    /// <returns>The <see cref="Value"/> value representing this <see cref="Opcode"/></returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="opcode"/> is greater than <see cref="MAX_REGISTER"/></exception>
+    public static implicit operator Value(Opcode opcode) => new((ushort)opcode);
 
 
     // === Mathematical Operators ===
