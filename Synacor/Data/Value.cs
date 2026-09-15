@@ -494,6 +494,23 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Value(Opcode opcode) => new((ushort)opcode);
 
+    /// <summary>
+    /// Implicit conversion from <see cref="Value"/> to <see cref="char"/>
+    /// </summary>
+    /// <param name="value"><see cref="Value"/> to convert to <see cref="char"/></param>
+    /// <returns>The <see cref="char"/> value contained within this <see cref="Value"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator char(Value value) => (char)value.value;
+
+    /// <summary>
+    /// Implicit conversion from <see cref="char"/> to <see cref="Value"/>
+    /// </summary>
+    /// <param name="character"><see cref="char"/> to convert to <see cref="Value"/></param>
+    /// <returns>The <see cref="Value"/> value representing this <see cref="char"/></returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="character"/> is greater than <see cref="MAX_REGISTER"/></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Value(char character) => new(character);
+
 
     // === Mathematical Operators ===
 

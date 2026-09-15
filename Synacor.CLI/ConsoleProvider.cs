@@ -5,9 +5,15 @@
 /// </summary>
 public sealed class ConsoleProvider : IInputProvider, IOutputProvider
 {
-    /// <inheritdoc />
-    public string ReadLine() => Console.ReadLine()!;
+    private static readonly char[] ReadBuffer = new char[1];
 
     /// <inheritdoc />
-    public void Write(char value) => Console.Write(value);
+    public async Task<char> Read(CancellationToken token = default)
+    {
+        await Console.In.ReadAsync(ReadBuffer, token);
+        return ReadBuffer[0];
+    }
+
+    /// <inheritdoc />
+    public async Task Write(char value, CancellationToken token = default) => await Console.Out.WriteAsync(value);
 }

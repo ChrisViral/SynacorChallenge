@@ -9,8 +9,9 @@ namespace Synacor;
 public interface IInputProvider
 {
     /// <summary>
-    /// Reads a line from the input
+    /// Reads a character from the input
     /// </summary>
-    /// <returns>Line read from the input</returns>
-    string ReadLine();
+    /// <param name="token">The canbcellation token</param>
+    /// <returns>Character read from the input</returns>
+    Task<char> Read(CancellationToken token = default);
 }

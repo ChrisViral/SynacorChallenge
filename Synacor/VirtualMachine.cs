@@ -353,7 +353,7 @@ public sealed partial class VirtualMachine : IDisposable
                 case Opcode.OUT:
                 {
                     Value a = GetValue();
-                    this.output.Write((char)a);
+                    await this.output.Write(a, token).ConfigureAwait(false);
                     break;
                 }
 
