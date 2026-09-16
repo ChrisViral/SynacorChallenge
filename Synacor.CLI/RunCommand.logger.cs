@@ -2,7 +2,7 @@
 
 namespace Synacor.CLI;
 
-public partial class SynacorCommand
+public partial class RunCommand
 {
     [LoggerMessage(LogLevel.Information, "Creating Virtual Machine and loading file data...")]
     static partial void LogCreateVM(ILogger logger);

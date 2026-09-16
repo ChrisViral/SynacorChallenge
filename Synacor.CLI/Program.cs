@@ -18,9 +18,9 @@ Cli.Ext.ConfigureServices(services =>
 });
 
 // If no args passed, default to help
-if (args is [])
+if (args is ["coins"] or ["run"])
 {
-    args = ["-h"];
+    args = [..args, "-h"];
 }
 
 int result;
