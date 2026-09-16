@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using Synacor.Data.DebugViews;
+using Synacor.Memory.DebugViews;
 
 namespace Synacor.Data;
 
@@ -22,8 +22,11 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     /// </summary>
     internal const int GROW_FACTOR = 2;
 
+    /// <summary> <see cref="Stack"/> buffer original </summary>
     internal Value* stack;
+    /// <summary> <see cref="Stack"/> top pointer </summary>
     internal Value* top;
+    /// <summary> <see cref="Stack"/> update version </summary>
     private int version;
 
     /// <summary>
@@ -363,6 +366,16 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     /// <inheritdoc cref="IEnumerable{T}.GetEnumerator()" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public StackRefEnumerator GetEnumerator() => new(this);
+
+    /// <summary>
+    /// Force sets the count and data of a stack
+    /// </summary>
+    /// <param name="count">New stack count</param>
+    internal void ForceSetCount(int count)
+    {
+        this.Count = count;
+        this.top = this.stack + count;
+    }
 
     /// <summary>
     /// Grows this <see cref="Stack"/> and reallocates memory

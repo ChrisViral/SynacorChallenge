@@ -1,9 +1,9 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Synacor.Data.DebugViews;
+using Synacor.Memory.DebugViews;
 
-namespace Synacor.Data;
+namespace Synacor.Memory;
 
 /// <summary>
 /// Non-owning view over a <see cref="MemoryManager"/>
@@ -29,9 +29,9 @@ internal sealed unsafe class MemoryView<T> : MemoryManager<T> where T : unmanage
     public MemoryView(MemoryManager memoryManager, int offset, int length)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(offset, (int)memoryManager.ByteLength / sizeof(T));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, (int)memoryManager.ByteLength / sizeof(T));
         ArgumentOutOfRangeException.ThrowIfNegative(length);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(length, ((int)memoryManager.ByteLength / sizeof(T)) - offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, ((int)memoryManager.ByteLength / sizeof(T)) - offset);
 
         this.memoryManager = memoryManager;
         this.pointer = (T*)memoryManager.Buffer + offset;

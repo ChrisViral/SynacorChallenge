@@ -3,10 +3,14 @@
 /// <summary>
 /// <see cref="VirtualMachine"/> state
 /// </summary>
-public enum State
+public enum State : byte
 {
     /// <summary>
-    /// The <see cref="VirtualMachine"/> is in an idle, unstarted state
+    /// The <see cref="VirtualMachine"/> has no data loaded
+    /// </summary>
+    EMPTY,
+    /// <summary>
+    /// The <see cref="VirtualMachine"/> is in an idle, unstarted state, but that can be started
     /// </summary>
     IDLE,
     /// <summary>

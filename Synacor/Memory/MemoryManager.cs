@@ -2,16 +2,16 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using JetBrains.Annotations;
-using Synacor.Data.DebugViews;
+using Synacor.Data;
+using Synacor.Memory.DebugViews;
 
-namespace Synacor.Data;
+namespace Synacor.Memory;
 
 /// <summary>
 /// <see cref="VirtualMachine"/> unmanaged memory block manager
 /// </summary>
-[PublicAPI, DebuggerDisplay("Size = {Length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView))]
-public sealed unsafe class MemoryManager : MemoryManager<Value>
+[DebuggerDisplay("Size = {Length}"), DebuggerTypeProxy(typeof(MemoryManagerDebugView))]
+internal sealed unsafe class MemoryManager : MemoryManager<Value>
 {
     /// <summary>
     /// Memory block length
