@@ -1,9 +1,9 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Synacor.Data.DebugViews;
+using Synacor.Memory.DebugViews;
 
-namespace Synacor.Data;
+namespace Synacor.Memory;
 
 /// <summary>
 /// Non-owning view over a <see cref="MemoryManager"/>

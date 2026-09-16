@@ -1,7 +1,8 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using Synacor.Data;
 
-namespace Synacor.Data.DebugViews;
+namespace Synacor.Memory.DebugViews;
 
 internal class MemoryManagerDebugView<T>(MemoryManager<T> manager)
 {
@@ -12,3 +13,5 @@ internal class MemoryManagerDebugView<T>(MemoryManager<T> manager)
 }
 
 internal sealed class MemoryManagerDebugView(MemoryManager manager) : MemoryManagerDebugView<Value>(manager);
+
+internal sealed class StackViewDebugView(StackView stack) : MemoryManagerDebugView<byte>(stack);

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
+using Synacor.Data;
 
-namespace Synacor.Data.DebugViews;
+namespace Synacor.Memory.DebugViews;
 
 internal sealed class StackDebugView(Stack stack)
 {

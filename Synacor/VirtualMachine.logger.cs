@@ -21,4 +21,10 @@ public partial class VirtualMachine
 
     [LoggerMessage(LogLevel.Information, "Virtual Machine halted")]
     static partial void LogHalted(ILogger logger);
+
+    [LoggerMessage(LogLevel.Warning, "Virtual Machine not loaded with data, nothing to save...")]
+    static partial void LogNoDatatoSave(ILogger logger);
+
+    [LoggerMessage(LogLevel.Warning, "Cannot save halted or errored Virtual Machine state")]
+    static partial void LogCannotSaveHaltedState(ILogger logger);
 }

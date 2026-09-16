@@ -27,40 +27,26 @@ public partial class SynacorCommand(ILoggerFactory factory, ConsoleInputProvider
     /// <inheritdoc />
     public async Task<int> RunAsync(CliContext cliContext)
     {
-        using CancellationTokenSource cancelSource = CancellationTokenSource.CreateLinkedTokenSource(cliContext.CancellationToken);
-        Console.CancelKeyPress += (_, _) =>
-        {
-            LogVirtualMachineOperationCancelled(this.Logger);
-            try
-            {
-                // ReSharper disable once AccessToDisposedClosure
-                cancelSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Ignore - source was disposed
-            }
-        };
-
         CliOutputProvider outputProvider = new(cliContext.Output);
         try
         {
             LogCreateVM(this.Logger);
             using VirtualMachine vm = new(this.factory.CreateLogger<VirtualMachine>(), this.inputProvider, outputProvider);
-            await vm.LoadFile(this.Data, cancelSource.Token);
+            await vm.LoadFile(this.Data, cliContext.CancellationToken);
 
             LogRunVM(this.Logger);
-            int result = await vm.Run(cancelSource.Token);
+            int result = await vm.Run(cliContext.CancellationToken);
             return result;
         }
         catch (OperationCanceledException)
         {
             // Cancellation should not produce an error
+            LogVirtualMachineOperationCancelled(this.Logger);
             return 0;
         }
         catch (Exception e)
         {
-            await outputProvider.Flush(cancelSource.Token);
+            await outputProvider.Flush(cliContext.CancellationToken);
             LogVMThrewException(this.Logger, e);
             return 1;
         }
