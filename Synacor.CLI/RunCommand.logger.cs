@@ -15,4 +15,7 @@ public partial class RunCommand
 
     [LoggerMessage(LogLevel.Information, "Dumping Virtual Machine state...")]
     static partial void LogDumpingState(ILogger logger);
+
+    [LoggerMessage(LogLevel.Information, "Virtual Machine final register set to {Value}")]
+    static partial void LogRegisterSet(ILogger logger, ushort value);
 }

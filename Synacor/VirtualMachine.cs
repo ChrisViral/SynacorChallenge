@@ -59,6 +59,24 @@ public sealed partial class VirtualMachine : IDisposable
     public bool IsActive => this.State is State.RUNNING or State.IO;
 
     /// <summary>
+    /// Program memory block
+    /// </summary>
+    public unsafe Span<Value> Memory
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(this.memory, Value.MAX_VALUE + 1);
+    }
+
+    /// <summary>
+    /// Registers memory block
+    /// </summary>
+    public unsafe Span<Value> Registers
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(this.registers, Value.REGISTER_COUNT);
+    }
+
+    /// <summary>
     /// Current memory address
     /// </summary>
     private unsafe ushort Address
@@ -320,7 +338,7 @@ public sealed partial class VirtualMachine : IDisposable
         if (this.State is not State.IDLE) return 0;
 
         this.runCancellationSource?.Dispose();
-        using CancellationTokenSource temp = CancellationTokenSource.CreateLinkedTokenSource(token);
+        CancellationTokenSource temp = CancellationTokenSource.CreateLinkedTokenSource(token);
         this.runCancellationSource = temp;
         token = this.runCancellationSource.Token;
 

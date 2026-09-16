@@ -116,7 +116,7 @@ public readonly struct Value : IBinaryInteger<Value>, IUnsignedNumber<Value>, IM
             ThrowIfNumber();
 #endif
 
-            return (char)(this.value + ('a' - MAX_VALUE));
+            return (char)(this.value + ('a' - MAX_VALUE - 1));
         }
     }
 
