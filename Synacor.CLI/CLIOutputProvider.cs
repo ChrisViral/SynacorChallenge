@@ -7,7 +7,7 @@ namespace Synacor.CLI;
 /// <see cref="CliWriter"/> output provider
 /// </summary>
 /// <param name="writer">Writer instance</param>
-public sealed class CliOutputProvider(CliWriter writer) : IOutputProvider
+public sealed class CliOutputProvider(CliWriter writer) : IOutputProvider, IDisposable, IAsyncDisposable
 {
     /// <summary> Writer instance </summary>
     private readonly CliWriter writer = writer;
@@ -37,4 +37,16 @@ public sealed class CliOutputProvider(CliWriter writer) : IOutputProvider
             this.builder.Clear();
         }
     }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (this.builder.Length > 0)
+        {
+            this.writer.Write(this.builder);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync() => await Flush();
 }

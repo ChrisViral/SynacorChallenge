@@ -256,6 +256,9 @@ public sealed partial class VirtualMachine : IDisposable
             Reset();
         }
 
+
+        LogLoadFileSize(this.Logger, (int)file.Length);
+
         // Setup file reading
         await using FileStream fileStream = file.OpenRead();
         using BinaryReader reader = new(fileStream);
