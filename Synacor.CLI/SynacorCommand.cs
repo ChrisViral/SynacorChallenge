@@ -30,22 +30,28 @@ public partial class SynacorCommand(ILoggerFactory factory, ConsoleInputProvider
     [CliOption(Description = "If the file being loaded is a Virtual Machine state and not simple binaries", Arity = CliArgumentArity.ZeroOrOne)]
     public bool FromState { get; set; }
 
+    /// <summary>
+    /// If the file being loaded is a Virtual Machine state and not simple binaries
+    /// </summary>
+    [CliOption(Description = "If the Virtual Machine state shouldn't be dumped on application cancel", Arity = CliArgumentArity.ZeroOrOne)]
+    public bool DontDumpState { get; set; }
+
     /// <inheritdoc />
     public async Task<int> RunAsync(CliContext cliContext)
     {
         CliOutputProvider outputProvider = new(cliContext.Output);
+        VirtualMachine? vm = null;
         try
         {
             LogCreateVM(this.Logger);
-            using VirtualMachine vm = new(this.factory.CreateLogger<VirtualMachine>(), this.inputProvider, outputProvider);
+            vm = new VirtualMachine(this.factory.CreateLogger<VirtualMachine>(), this.inputProvider, outputProvider);
 
             // Dump data when aborted
-            Console.CancelKeyPress += (_, _) =>
+            Console.CancelKeyPress += (_, e) =>
             {
-                // ReSharper disable AccessToDisposedClosure
+                // ReSharper disable once AccessToDisposedClosure
                 vm.Abort();
-                vm.DumpStateToFile(new FileInfo(this.Data + ".vmd")).GetAwaiter().GetResult();
-                // ReSharper restore AccessToDisposedClosure
+                e.Cancel = true;
             };
 
             // Load data
@@ -64,8 +70,14 @@ public partial class SynacorCommand(ILoggerFactory factory, ConsoleInputProvider
         }
         catch (OperationCanceledException)
         {
+            // Dump state on cancellation
+            if (vm is not null && !this.DontDumpState)
+            {
+                LogDumpingState(this.Logger);
+                await vm.DumpStateToFile(new FileInfo(this.Data + ".vmd"));
+            }
+
             // Cancellation should not produce an error
-            LogVirtualMachineOperationCancelled(this.Logger);
             return 0;
         }
         catch (Exception e)
@@ -73,6 +85,10 @@ public partial class SynacorCommand(ILoggerFactory factory, ConsoleInputProvider
             await outputProvider.Flush(cliContext.CancellationToken);
             LogVMThrewException(this.Logger, e);
             return 1;
+        }
+        finally
+        {
+            vm?.Dispose();
         }
     }
 }

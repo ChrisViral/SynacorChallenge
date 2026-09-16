@@ -33,6 +33,8 @@ public sealed partial class VirtualMachine : IDisposable
     private unsafe Value* ip;
     /// <summary> Registers first pointer </summary>
     private unsafe Value* registers;
+    /// <summary> Last opcode read pointer </summary>
+    private unsafe Value* lastOpcode;
 
     /// <summary> Input provider </summary>
     private readonly IInputProvider input;
@@ -64,7 +66,20 @@ public sealed partial class VirtualMachine : IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => (ushort)(this.ip - this.memory);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => this.ip = this.memory + value;
+        set
+        {
+            this.ip = this.memory + value;
+            this.lastOpcode = this.ip;
+        }
+    }
+
+    /// <summary>
+    /// Last <see cref="Opcode"/> memory address
+    /// </summary>
+    private unsafe ushort LastOpcodeAddress
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (ushort)(this.lastOpcode - this.memory);
     }
 
     /// <summary>
@@ -86,6 +101,7 @@ public sealed partial class VirtualMachine : IDisposable
         this.memory = this.memoryManager.Buffer;
         this.ip = this.memory;
         this.registers = this.memory + MEMORY_SIZE;
+        this.lastOpcode = this.ip;
 
         this.input = input;
         this.output = output;
@@ -277,7 +293,7 @@ public sealed partial class VirtualMachine : IDisposable
         await using BinaryWriter writer = new(fileStream);
 
         // Write address info
-        writer.Write(this.Address);
+        writer.Write(this.LastOpcodeAddress);
 
         // Write stack info
         writer.Write(this.stack.Count);
@@ -306,20 +322,21 @@ public sealed partial class VirtualMachine : IDisposable
         this.runCancellationSource?.Dispose();
         using CancellationTokenSource temp = CancellationTokenSource.CreateLinkedTokenSource(token);
         this.runCancellationSource = temp;
+        token = this.runCancellationSource.Token;
 
         // Start running
         this.State = State.RUNNING;
         while (this.State is State.RUNNING)
         {
             // Check cancellation
-            this.runCancellationSource.Token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested();
 
             Opcode opcode = GetOpcode();
             switch (opcode)
             {
                 // 0 - halt - Halt execution
                 case Opcode.HALT:
-                    await Halt(this.runCancellationSource.Token).ConfigureAwait(false);
+                    await Halt(token).ConfigureAwait(false);
                     return 0;
 
                 // 1 - set a b - Set register a to b
@@ -349,7 +366,7 @@ public sealed partial class VirtualMachine : IDisposable
 
                 // 3 - pop a - Pop the top value of the stack and store it into a (failure branch)
                 case Opcode.POP:
-                    await Error(this.runCancellationSource.Token).ConfigureAwait(false);
+                    await Error(token).ConfigureAwait(false);
                     LogStackEmpty(this.Logger);
                     return 1;
 
@@ -482,7 +499,7 @@ public sealed partial class VirtualMachine : IDisposable
 
                 // 18 - ret - Pop the stack and jump to the address it specified, halt if the stack is empty (failure branch)
                 case Opcode.RET:
-                    await Halt(this.runCancellationSource.Token).ConfigureAwait(false);
+                    await Halt(token).ConfigureAwait(false);
                     return 0;
 
                 // 19 - out a - Output the value of a as an ASCII character
@@ -490,7 +507,7 @@ public sealed partial class VirtualMachine : IDisposable
                 {
                     Value a = GetValue();
                     this.State = State.IO;
-                    await this.output.Write(a, this.runCancellationSource.Token).ConfigureAwait(false);
+                    await this.output.Write(a, token).ConfigureAwait(false);
                     this.State = State.RUNNING;
                     break;
                 }
@@ -499,8 +516,8 @@ public sealed partial class VirtualMachine : IDisposable
                 case Opcode.IN:
                 {
                     this.State = State.IO;
-                    await this.output.Flush(this.runCancellationSource.Token).ConfigureAwait(false);
-                    char value = await this.input.Read(this.runCancellationSource.Token).ConfigureAwait(false);
+                    await this.output.Flush(token).ConfigureAwait(false);
+                    char value = await this.input.Read(token).ConfigureAwait(false);
                     this.State = State.RUNNING;
 
                     ref Value register = ref GetRegister();
@@ -514,14 +531,14 @@ public sealed partial class VirtualMachine : IDisposable
 
                 default:
                     // Unknown opcode, log error
-                    await Error(this.runCancellationSource.Token).ConfigureAwait(false);
+                    await Error(token).ConfigureAwait(false);
                     LogUnknownOpcode(this.Logger, (int)opcode);
                     throw new InvalidEnumArgumentException(nameof(opcode), (int)opcode, typeof(Opcode));
             }
         }
 
         // Virtual Machine in an unexpected way
-        await Error(this.runCancellationSource.Token).ConfigureAwait(false);
+        await Error(token).ConfigureAwait(false);
         LogUnexpectedTermination(this.Logger);
         return 1;
     }
@@ -559,6 +576,7 @@ public sealed partial class VirtualMachine : IDisposable
         // Reset instruction pointer and stack
         this.stack.Clear();
         this.ip = this.memory;
+        this.lastOpcode = this.ip;
 
         // Clear memory if needed
         if (hasData)
@@ -585,6 +603,7 @@ public sealed partial class VirtualMachine : IDisposable
         this.memory = null;
         this.ip = null;
         this.registers = null;
+        this.lastOpcode = null;
 
         // Finalize
         GC.SuppressFinalize(this);

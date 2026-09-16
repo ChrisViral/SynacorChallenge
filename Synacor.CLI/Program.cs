@@ -23,26 +23,11 @@ if (args is [])
     args = ["-h"];
 }
 
-// Setup console cancellation
-using CancellationTokenSource source = new();
-Console.CancelKeyPress += (_, _) =>
-{
-    try
-    {
-        // ReSharper disable once AccessToDisposedClosure
-        source.Cancel();
-    }
-    catch (ObjectDisposedException)
-    {
-        // Ignore
-    }
-};
-
 int result;
 try
 {
     // Try running the command
-    result = await Cli.RunAsync<SynacorCommand>(args, cancellationToken: source.Token).ConfigureAwait(false);
+    result = await Cli.RunAsync<SynacorCommand>(args).ConfigureAwait(false);
 }
 catch (Exception e)
 {

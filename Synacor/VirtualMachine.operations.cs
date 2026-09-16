@@ -10,7 +10,11 @@ public partial class VirtualMachine
     /// </summary>
     /// <returns>The <see cref="Opcode"/> for the current instruction</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe Opcode GetOpcode() => *this.ip++;
+    private unsafe Opcode GetOpcode()
+    {
+        this.lastOpcode = this.ip;
+        return *this.ip++;
+    }
 
     /// <summary>
     /// Halts the <see cref="VirtualMachine"/>
@@ -32,7 +36,6 @@ public partial class VirtualMachine
         this.State = State.ERROR;
         await this.output.Flush(token).ConfigureAwait(false);
     }
-
 
     /// <summary>
     /// Increments the instruction pointer
