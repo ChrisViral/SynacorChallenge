@@ -23,14 +23,23 @@ public sealed partial class VirtualMachine : IDisposable
     /// </summary>
     private const int BUFFER_SIZE = MEMORY_SIZE + Value.REGISTER_COUNT;
 
+    /// <summary> Memory stack </summary>
     private Stack stack = new();
+    /// <summary> Memory block manager </summary>
     private MemoryManager memoryManager;
+    /// <summary> Memory buffer start pointer </summary>
     private unsafe Value* memory;
+    /// <summary> Instruction pointer </summary>
     private unsafe Value* ip;
+    /// <summary> Registers first pointer </summary>
     private unsafe Value* registers;
 
+    /// <summary> Input provider </summary>
     private readonly IInputProvider input;
+    /// <summary> Output provider </summary>
     private readonly IOutputProvider output;
+    /// <summary> Run cancellation token source </summary>
+    private CancellationTokenSource? runCancellationSource;
 
     /// <summary>
     /// The current state of this <see cref="VirtualMachine"/>
@@ -41,6 +50,11 @@ public sealed partial class VirtualMachine : IDisposable
     /// If this <see cref="VirtualMachine"/> has been disposed
     /// </summary>
     public bool IsDisposed { get; private set; }
+
+    /// <summary>
+    /// If this <see cref="VirtualMachine"/> is currentl active and running code
+    /// </summary>
+    public bool IsActive => this.State is State.RUNNING or State.IO;
 
     /// <summary>
     /// Current memory address
@@ -97,7 +111,7 @@ public sealed partial class VirtualMachine : IDisposable
         if (file.Length > MEMORY_SIZE * Value.SIZE) throw new ArgumentException("File size too large for Virtual Machine memory", nameof(file));
 
         // Make sure we can load data
-        if (this.State is State.RUNNING or State.IO)
+        if (this.IsActive)
         {
             LogCannotLoadWhileRunning(this.Logger);
             return;
@@ -132,7 +146,7 @@ public sealed partial class VirtualMachine : IDisposable
         ArgumentOutOfRangeException.ThrowIfGreaterThan(data.Length, MEMORY_SIZE, nameof(data));
 
         // Make sure we can load data
-        if (this.State is State.RUNNING or State.IO)
+        if (this.IsActive)
         {
             LogCannotLoadWhileRunning(this.Logger);
             return;
@@ -161,7 +175,7 @@ public sealed partial class VirtualMachine : IDisposable
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
         // Make sure we can load data
-        if (this.State is State.RUNNING or State.IO)
+        if (this.IsActive)
         {
             LogCannotLoadWhileRunning(this.Logger);
             return;
@@ -195,7 +209,7 @@ public sealed partial class VirtualMachine : IDisposable
         if (!file.Exists) throw new FileNotFoundException("Data file to load does not exist", file.FullName);
 
         // Make sure we can load data
-        if (this.State is State.RUNNING or State.IO)
+        if (this.IsActive)
         {
             LogCannotLoadWhileRunning(this.Logger);
             return;
@@ -289,24 +303,23 @@ public sealed partial class VirtualMachine : IDisposable
         // Make sure we are in a state where we can start the Virtual Machine
         if (this.State is not State.IDLE) return 0;
 
+        this.runCancellationSource?.Dispose();
+        using CancellationTokenSource temp = CancellationTokenSource.CreateLinkedTokenSource(token);
+        this.runCancellationSource = temp;
+
         // Start running
         this.State = State.RUNNING;
         while (this.State is State.RUNNING)
         {
             // Check cancellation
-            if (token.IsCancellationRequested)
-            {
-                LogOperationCancelled(this.Logger);
-                this.State = State.CANCELLED;
-                token.ThrowIfCancellationRequested();
-            }
+            this.runCancellationSource.Token.ThrowIfCancellationRequested();
 
             Opcode opcode = GetOpcode();
             switch (opcode)
             {
                 // 0 - halt - Halt execution
                 case Opcode.HALT:
-                    await Halt(token).ConfigureAwait(false);
+                    await Halt(this.runCancellationSource.Token).ConfigureAwait(false);
                     return 0;
 
                 // 1 - set a b - Set register a to b
@@ -336,8 +349,7 @@ public sealed partial class VirtualMachine : IDisposable
 
                 // 3 - pop a - Pop the top value of the stack and store it into a (failure branch)
                 case Opcode.POP:
-                    this.State = State.ERROR;
-                    await this.output.Flush(token).ConfigureAwait(false);
+                    await Error(this.runCancellationSource.Token).ConfigureAwait(false);
                     LogStackEmpty(this.Logger);
                     return 1;
 
@@ -470,7 +482,7 @@ public sealed partial class VirtualMachine : IDisposable
 
                 // 18 - ret - Pop the stack and jump to the address it specified, halt if the stack is empty (failure branch)
                 case Opcode.RET:
-                    await Halt(token).ConfigureAwait(false);
+                    await Halt(this.runCancellationSource.Token).ConfigureAwait(false);
                     return 0;
 
                 // 19 - out a - Output the value of a as an ASCII character
@@ -478,7 +490,7 @@ public sealed partial class VirtualMachine : IDisposable
                 {
                     Value a = GetValue();
                     this.State = State.IO;
-                    await this.output.Write(a, token).ConfigureAwait(false);
+                    await this.output.Write(a, this.runCancellationSource.Token).ConfigureAwait(false);
                     this.State = State.RUNNING;
                     break;
                 }
@@ -487,8 +499,8 @@ public sealed partial class VirtualMachine : IDisposable
                 case Opcode.IN:
                 {
                     this.State = State.IO;
-                    await this.output.Flush(token).ConfigureAwait(false);
-                    char value = await this.input.Read(token).ConfigureAwait(false);
+                    await this.output.Flush(this.runCancellationSource.Token).ConfigureAwait(false);
+                    char value = await this.input.Read(this.runCancellationSource.Token).ConfigureAwait(false);
                     this.State = State.RUNNING;
 
                     ref Value register = ref GetRegister();
@@ -502,18 +514,34 @@ public sealed partial class VirtualMachine : IDisposable
 
                 default:
                     // Unknown opcode, log error
-                    this.State = State.ERROR;
-                    await this.output.Flush(token).ConfigureAwait(false);
+                    await Error(this.runCancellationSource.Token).ConfigureAwait(false);
                     LogUnknownOpcode(this.Logger, (int)opcode);
                     throw new InvalidEnumArgumentException(nameof(opcode), (int)opcode, typeof(Opcode));
             }
         }
 
         // Virtual Machine in an unexpected way
-        this.State = State.ERROR;
-        await this.output.Flush(token).ConfigureAwait(false);
+        await Error(this.runCancellationSource.Token).ConfigureAwait(false);
         LogUnexpectedTermination(this.Logger);
         return 1;
+    }
+
+    /// <summary>
+    /// Aborts the current Virtual Machine run if possible
+    /// </summary>
+    public void Abort()
+    {
+        // Make sure we're running before we abort
+        if (!this.IsActive || this.runCancellationSource is null)
+        {
+            return;
+        }
+
+        this.runCancellationSource.Cancel();
+        this.runCancellationSource.Dispose();
+        this.runCancellationSource = null;
+        this.State = State.CANCELLED;
+        LogOperationCancelled(this.Logger);
     }
 
     /// <summary>
@@ -524,12 +552,16 @@ public sealed partial class VirtualMachine : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.IsDisposed, this);
 
+        // Abort if currently running
+        bool hasData = this.State is not State.EMPTY;
+        Abort();
+
         // Reset instruction pointer and stack
         this.stack.Clear();
         this.ip = this.memory;
 
         // Clear memory if needed
-        if (this.State is not State.EMPTY)
+        if (hasData)
         {
             this.memoryManager.Clear();
         }
@@ -539,11 +571,22 @@ public sealed partial class VirtualMachine : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose()
+    public unsafe void Dispose()
     {
         if (this.IsDisposed) return;
 
+        // Stop function
+        Abort();
+
+        // Release resources and clear pointers
         ReleaseUnmanagedResources();
+        this.stack = null!;
+        this.memoryManager = null!;
+        this.memory = null;
+        this.ip = null;
+        this.registers = null;
+
+        // Finalize
         GC.SuppressFinalize(this);
         this.IsDisposed = true;
     }
@@ -551,16 +594,10 @@ public sealed partial class VirtualMachine : IDisposable
     /// <summary>
     /// Deallocates unmanaged memory
     /// </summary>
-    private unsafe void ReleaseUnmanagedResources()
+    private void ReleaseUnmanagedResources()
     {
         this.stack.Dispose();
         ((IDisposable)this.memoryManager).Dispose();
-
-        this.stack = null!;
-        this.memoryManager = null!;
-        this.memory = null;
-        this.ip = null;
-        this.registers = null;
     }
 
     [LoggerMessage(LogLevel.Warning, "Cannot load data into Virtual Machine while it is running")]

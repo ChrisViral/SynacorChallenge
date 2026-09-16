@@ -24,6 +24,17 @@ public partial class VirtualMachine
     }
 
     /// <summary>
+    /// Errors the <see cref="VirtualMachine"/>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private async ValueTask Error(CancellationToken token)
+    {
+        this.State = State.ERROR;
+        await this.output.Flush(token).ConfigureAwait(false);
+    }
+
+
+    /// <summary>
     /// Increments the instruction pointer
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
