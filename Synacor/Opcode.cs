@@ -45,11 +45,7 @@ public enum Opcode : ushort
     RET  = 18,
     /// <summary> Write the character represented by ascii code <c>a</c> to the terminal </summary>
     OUT  = 19,
-    /// <summary>
-    /// Read a character from the terminal and write its ascii code to <c>a</c>.
-    /// It can be assumed that once input starts, it will continue until a newline is encountered.
-    /// This means that you can safely read whole lines from the keyboard instead of having to figure out how to read individual characters.
-    /// </summary>
+    /// <summary> Read a character from the terminal and write its ascii code to <c>a</c> </summary>
     IN   = 20,
     /// <summary> No operation </summary>
     NOOP = 21

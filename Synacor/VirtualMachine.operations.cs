@@ -10,7 +10,7 @@ public partial class VirtualMachine
     /// </summary>
     /// <returns>The <see cref="Opcode"/> for the current instruction</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe Opcode GetOpcode()
+    private unsafe Opcode GetNextOpcode()
     {
         this.lastOpcode = this.ip;
         return *this.ip++;
@@ -49,7 +49,7 @@ public partial class VirtualMachine
     /// </summary>
     /// <returns>The <see cref="Value"/> numerical value or register value for the current instruction</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe Value GetValue()
+    private unsafe Value GetNextValue()
     {
         Value value = *this.ip++;
         return value.IsRegister
@@ -63,7 +63,7 @@ public partial class VirtualMachine
     /// </summary>
     /// <returns>A reference to the register pointed to by the current instruction</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe ref Value GetRegister()
+    private unsafe ref Value GetNextRegister()
     {
         Value register = *this.ip++;
 #if DEBUG
@@ -78,7 +78,7 @@ public partial class VirtualMachine
     /// </summary>
     /// <returns>A reference to the memory pointed to by the current instruction</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe ref Value GetMemory()
+    private unsafe ref Value GetNextMemory()
     {
         Value offset = *this.ip++;
         return ref offset.IsRegister
@@ -90,13 +90,12 @@ public partial class VirtualMachine
     /// Jumps to the instruction pointed at by the current instruction pointer, dereferening registers if necessary
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void Jump()
+    private unsafe void JumpNext()
     {
         Value value = *this.ip;
-        this.ip = this.memory
-                + (value.IsRegister
-                       ? *(this.memory + value)
-                       : value);
+        this.ip = this.memory + (value.IsRegister
+                                     ? *(this.memory + value)
+                                     : value);
     }
 
     /// <summary>
@@ -104,12 +103,12 @@ public partial class VirtualMachine
     /// </summary>
     /// <param name="adress">Adress to jump to</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void Jump(Value adress) => this.ip = this.memory + adress;
+    private unsafe void JumpAddress(Value adress) => this.ip = this.memory + adress;
 
     /// <summary>
     /// Gets the numerical address at the given offset from the current instruction pointer
     /// </summary>
     /// <returns>The memory address offset of the instruction pointer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe Value GetAddress(int offset) => (ushort)((this.ip + offset) - this.memory);
+    private unsafe Value GetAddressAtOffset(int offset) => (ushort)((this.ip + offset) - this.memory);
 }

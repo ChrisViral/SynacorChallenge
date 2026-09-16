@@ -357,6 +357,9 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
         if (this.IsDisposed) return;
 
         ReleaseUnmanagedResources();
+        this.stack = null;
+        this.top   = null;
+
         GC.SuppressFinalize(this);
         this.IsDisposed = true;
         this.Capacity = 0;
@@ -402,8 +405,6 @@ public sealed unsafe class Stack : IReadOnlyCollection<Value>, IDisposable
     private void ReleaseUnmanagedResources()
     {
         NativeMemory.Free(this.stack);
-        this.stack = null;
-        this.top   = null;
         this.version++;
     }
 

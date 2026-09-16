@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
@@ -11,7 +12,7 @@ namespace Synacor;
 /// <summary>
 /// Virtual Machine implementation
 /// </summary>
-[PublicAPI]
+[PublicAPI, DebuggerDisplay("State = {State}")]
 public sealed partial class VirtualMachine : IDisposable
 {
     /// <summary>
@@ -153,7 +154,7 @@ public sealed partial class VirtualMachine : IDisposable
 
         // Get memory view
         int length = (int)file.Length;
-        using MemoryView<byte> view = new(this.memoryManager, 0, length);
+        using MemoryView view = new(this.memoryManager, 0, length);
 
         // Clear the data if there is any
         if (this.State is not State.EMPTY)
@@ -275,7 +276,7 @@ public sealed partial class VirtualMachine : IDisposable
         await fileStream.ReadExactlyAsync(stackView.Memory, token).ConfigureAwait(false);
 
         // Read memory contents
-        using MemoryView<byte> memoryView = new(this.memoryManager, 0, (int)this.memoryManager.ByteLength);
+        using MemoryView memoryView = new(this.memoryManager, 0, (int)this.memoryManager.ByteLength);
         await fileStream.ReadExactlyAsync(memoryView.Memory, token).ConfigureAwait(false);
 
         // Set state
@@ -322,7 +323,7 @@ public sealed partial class VirtualMachine : IDisposable
         await fileStream.WriteAsync(stackView.Memory, token).ConfigureAwait(false);
 
         // Write entire memory contents
-        using MemoryView<byte> memoryView = new(this.memoryManager, 0, (int)this.memoryManager.ByteLength);
+        using MemoryView memoryView = new(this.memoryManager, 0, (int)this.memoryManager.ByteLength);
         await fileStream.WriteAsync(memoryView.Memory, token).ConfigureAwait(false);
     }
 
@@ -349,7 +350,7 @@ public sealed partial class VirtualMachine : IDisposable
             // Check cancellation
             token.ThrowIfCancellationRequested();
 
-            Opcode opcode = GetOpcode();
+            Opcode opcode = GetNextOpcode();
             switch (opcode)
             {
                 // 0 - halt - Halt execution
@@ -360,8 +361,8 @@ public sealed partial class VirtualMachine : IDisposable
                 // 1 - set a b - Set register a to b
                 case Opcode.SET:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
                     register = a;
                     break;
                 }
@@ -369,7 +370,7 @@ public sealed partial class VirtualMachine : IDisposable
                 // 2 - push a - Push the value a onto the stack
                 case Opcode.PUSH:
                 {
-                    Value a = GetValue();
+                    Value a = GetNextValue();
                     this.stack.Push(a);
                     break;
                 }
@@ -377,7 +378,7 @@ public sealed partial class VirtualMachine : IDisposable
                 // 3 - pop a - Pop the top value of the stack and store it into a (success branch)
                 case Opcode.POP when this.stack.TryPop(out Value value):
                 {
-                    ref Value register = ref GetRegister();
+                    ref Value register = ref GetNextRegister();
                     register = value;
                     break;
                 }
@@ -391,9 +392,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 4 - eq a b c - Set a to 1 if b equals c, otherwise set it to 0
                 case Opcode.EQ:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
-                    Value b = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
+                    Value b = GetNextValue();
                     register = a == b ? Value.True : Value.False;
                     break;
                 }
@@ -401,9 +402,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 5 - gt a b c - Set a to 1 if b is greater than c, otherwise set it to 0
                 case Opcode.GT:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
-                    Value b = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
+                    Value b = GetNextValue();
                     register = a > b ? Value.True : Value.False;
                     break;
                 }
@@ -411,10 +412,10 @@ public sealed partial class VirtualMachine : IDisposable
                 // 6 - jmp a - Jump to a
                 case Opcode.JMP:
                 // 7 - jt a b - Jump to b if a is true (success branch)
-                case Opcode.JT when GetValue() != Value.False:
+                case Opcode.JT when GetNextValue() != Value.False:
                 // 8 - jf a b - Jump to b if a false (success branch)
-                case Opcode.JF when GetValue() == Value.False:
-                    Jump();
+                case Opcode.JF when GetNextValue() == Value.False:
+                    JumpNext();
                     break;
 
                 // 7 - jt a b - Jump to b if a is true (failure branch)
@@ -427,9 +428,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 9 - add a b c - Store into a the sum of b and c
                 case Opcode.ADD:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
-                    Value b = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
+                    Value b = GetNextValue();
                     register = a + b;
                     break;
                 }
@@ -437,9 +438,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 10 - mult a b c - Store into a the product of b and c
                 case Opcode.MULT:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
-                    Value b = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
+                    Value b = GetNextValue();
                     register = a * b;
                     break;
                 }
@@ -447,9 +448,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 11 - mop a b c - Store into a the modulus of b and c
                 case Opcode.MOD:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
-                    Value b = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
+                    Value b = GetNextValue();
                     register = a % b;
                     break;
                 }
@@ -457,9 +458,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 12 - and a b c - Store into a the bitwise and of b and c
                 case Opcode.AND:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
-                    Value b = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
+                    Value b = GetNextValue();
                     register = a & b;
                     break;
                 }
@@ -467,9 +468,9 @@ public sealed partial class VirtualMachine : IDisposable
                 // 13 - or a b c - Store into a the bitwise or of b and c
                 case Opcode.OR:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
-                    Value b = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
+                    Value b = GetNextValue();
                     register = a | b;
                     break;
                 }
@@ -477,8 +478,8 @@ public sealed partial class VirtualMachine : IDisposable
                 // 14 - not a b - Store into a the bitwise inverse of b
                 case Opcode.NOT:
                 {
-                    ref Value register = ref GetRegister();
-                    Value a = GetValue();
+                    ref Value register = ref GetNextRegister();
+                    Value a = GetNextValue();
                     register = ~a;
                     break;
                 }
@@ -486,8 +487,8 @@ public sealed partial class VirtualMachine : IDisposable
                 // 15 - rmem a b - Store into register a the value at memory address b
                 case Opcode.RMEM:
                 {
-                    ref Value register = ref GetRegister();
-                    Value mem = GetMemory();
+                    ref Value register = ref GetNextRegister();
+                    Value mem = GetNextMemory();
                     register = mem;
                     break;
                 }
@@ -495,8 +496,8 @@ public sealed partial class VirtualMachine : IDisposable
                 // 16 - wmem a b - Write the value of b into memory address a
                 case Opcode.WMEM:
                 {
-                    ref Value mem = ref GetMemory();
-                    Value a = GetValue();
+                    ref Value mem = ref GetNextMemory();
+                    Value a = GetNextValue();
                     mem = a;
                     break;
                 }
@@ -504,15 +505,15 @@ public sealed partial class VirtualMachine : IDisposable
                 // 17 - call a - Write the next instruction address to the stack, then jump to a
                 case Opcode.CALL:
                 {
-                    Value address = GetAddress(1);
+                    Value address = GetAddressAtOffset(1);
                     this.stack.Push(address);
-                    Jump();
+                    JumpNext();
                     break;
                 }
 
                 // 18 - ret - Pop the stack and jump to the address it specified, halt if the stack is empty (success branch)
                 case Opcode.RET when this.stack.TryPop(out Value value):
-                    Jump(value);
+                    JumpAddress(value);
                     break;
 
                 // 18 - ret - Pop the stack and jump to the address it specified, halt if the stack is empty (failure branch)
@@ -523,7 +524,7 @@ public sealed partial class VirtualMachine : IDisposable
                 // 19 - out a - Output the value of a as an ASCII character
                 case Opcode.OUT:
                 {
-                    Value a = GetValue();
+                    Value a = GetNextValue();
                     this.State = State.IO;
                     await this.output.Write(a, token).ConfigureAwait(false);
                     this.State = State.RUNNING;
@@ -538,7 +539,7 @@ public sealed partial class VirtualMachine : IDisposable
                     char value = await this.input.Read(token).ConfigureAwait(false);
                     this.State = State.RUNNING;
 
-                    ref Value register = ref GetRegister();
+                    ref Value register = ref GetNextRegister();
                     register = value;
                     break;
                 }
