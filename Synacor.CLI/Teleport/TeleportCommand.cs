@@ -2,7 +2,7 @@ using DotMake.CommandLine;
 using Microsoft.Extensions.Logging;
 using Synacor.Data;
 
-namespace Synacor.CLI;
+namespace Synacor.CLI.Teleport;
 
 /// <summary>
 /// Calculates the teleport register value

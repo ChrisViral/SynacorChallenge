@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using DotMake.CommandLine;
 using Microsoft.Extensions.Logging;
 
-namespace Synacor.CLI;
+namespace Synacor.CLI.Orb;
 
 /// <summary>
 /// Finds the shortest valid orb path

@@ -1,7 +1,7 @@
 ﻿using DotMake.CommandLine;
 using Microsoft.Extensions.Logging;
 
-namespace Synacor.CLI;
+namespace Synacor.CLI.Coins;
 
 /// <summary>
 /// Coin problem calculation command <br/>

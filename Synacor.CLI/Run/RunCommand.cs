@@ -2,62 +2,7 @@
 using FastEnumUtility;
 using Microsoft.Extensions.Logging;
 
-namespace Synacor.CLI;
-
-/// <summary>
-/// <see cref="VirtualMachine"/> memory patch
-/// </summary>
-public readonly struct RegisterPatch
-{
-    /// <summary>
-    /// Patch index
-    /// </summary>
-    public int Register { get; }
-
-    /// <summary>
-    /// Patch <see cref="Opcode"/>
-    /// </summary>
-    public ushort Value { get; }
-
-    /// <summary>
-    /// Creates a new patch from the given data
-    /// </summary>
-    /// <param name="data">Data to create the patch from</param>
-    public RegisterPatch(string data)
-    {
-        ReadOnlySpan<char> dataSpan = data;
-        this.Register = dataSpan[0] - 'a';
-        this.Value = ushort.Parse(dataSpan[2..]);
-    }
-}
-
-/// <summary>
-/// <see cref="VirtualMachine"/> memory patch
-/// </summary>
-public readonly struct MemoryPatch
-{
-    /// <summary>
-    /// Patch index
-    /// </summary>
-    public int Address { get; }
-
-    /// <summary>
-    /// Patch <see cref="Opcode"/>
-    /// </summary>
-    public Opcode Opcode { get; }
-
-    /// <summary>
-    /// Creates a new patch from the given data
-    /// </summary>
-    /// <param name="data">Data to create the patch from</param>
-    public MemoryPatch(string data)
-    {
-        ReadOnlySpan<char> dataSpan = data;
-        int separatorIndex = dataSpan.IndexOf(':');
-        this.Address = int.Parse(dataSpan[..separatorIndex]);
-        this.Opcode = FastEnum.Parse<Opcode>(dataSpan[(separatorIndex + 1)..]);
-    }
-}
+namespace Synacor.CLI.Run;
 
 /// <summary>
 /// Synacor Challenge Virtual Machine interface
@@ -65,6 +10,61 @@ public readonly struct MemoryPatch
 [CliCommand(Name = "run", Description = "Virtual Machine run command", Parent = typeof(SynacorCommand))]
 public sealed partial class RunCommand(ILoggerFactory factory, ConsoleInputProvider inputProvider) : ICliRunAsyncWithContextAndReturn
 {
+    /// <summary>
+    /// <see cref="VirtualMachine"/> memory patch
+    /// </summary>
+    public readonly struct RegisterPatch
+    {
+        /// <summary>
+        /// Patch index
+        /// </summary>
+        public int Register { get; }
+
+        /// <summary>
+        /// Patch <see cref="Opcode"/>
+        /// </summary>
+        public ushort Value { get; }
+
+        /// <summary>
+        /// Creates a new patch from the given data
+        /// </summary>
+        /// <param name="data">Data to create the patch from</param>
+        public RegisterPatch(string data)
+        {
+            ReadOnlySpan<char> dataSpan = data;
+            this.Register = dataSpan[0] - 'a';
+            this.Value = ushort.Parse(dataSpan[2..]);
+        }
+    }
+
+    /// <summary>
+    /// <see cref="VirtualMachine"/> memory patch
+    /// </summary>
+    public readonly struct MemoryPatch
+    {
+        /// <summary>
+        /// Patch index
+        /// </summary>
+        public int Address { get; }
+
+        /// <summary>
+        /// Patch <see cref="Opcode"/>
+        /// </summary>
+        public Opcode Opcode { get; }
+
+        /// <summary>
+        /// Creates a new patch from the given data
+        /// </summary>
+        /// <param name="data">Data to create the patch from</param>
+        public MemoryPatch(string data)
+        {
+            ReadOnlySpan<char> dataSpan = data;
+            int separatorIndex = dataSpan.IndexOf(':');
+            this.Address = int.Parse(dataSpan[..separatorIndex]);
+            this.Opcode = FastEnum.Parse<Opcode>(dataSpan[(separatorIndex + 1)..]);
+        }
+    }
+
     private readonly ILoggerFactory factory = factory;
     private readonly ConsoleInputProvider inputProvider = inputProvider;
 
