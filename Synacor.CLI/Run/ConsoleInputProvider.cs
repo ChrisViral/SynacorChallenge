@@ -1,4 +1,4 @@
-﻿namespace Synacor.CLI;
+﻿namespace Synacor.CLI.Run;
 
 /// <summary>
 /// <see cref="Console"/> IO provider

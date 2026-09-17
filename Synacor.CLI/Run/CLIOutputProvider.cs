@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using DotMake.CommandLine;
 
-namespace Synacor.CLI;
+namespace Synacor.CLI.Run;
 
 /// <summary>
 /// <see cref="CliWriter"/> output provider

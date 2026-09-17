@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace Synacor.CLI;
+namespace Synacor.CLI.Run;
 
 public partial class RunCommand
 {

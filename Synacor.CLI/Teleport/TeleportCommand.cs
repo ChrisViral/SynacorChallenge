@@ -2,14 +2,14 @@ using DotMake.CommandLine;
 using Microsoft.Extensions.Logging;
 using Synacor.Data;
 
-namespace Synacor.CLI;
+namespace Synacor.CLI.Teleport;
 
 /// <summary>
 /// Calculates the teleport register value
 /// </summary>
 /// <param name="logger">Logger instance</param>
 [CliCommand(Name = "teleport", Description = "Calculates the teleport register value", Parent = typeof(SynacorCommand))]
-public sealed partial class TeleportCommand(ILogger<TeleportCommand> logger) : ICliRun
+public sealed partial class TeleportCommand(ILogger<TeleportCommand> logger) : ICliRunWithReturn
 {
     /// <summary>
     /// Initial A value
@@ -35,17 +35,17 @@ public sealed partial class TeleportCommand(ILogger<TeleportCommand> logger) : I
     private ILogger Logger { get; } = logger;
 
     /// <inheritdoc />
-    public void Run()
+    public int Run()
     {
         LogFindingRegister(this.Logger, this.A, this.B, this.ExpectedResult);
         if (FindTeleport(out int register))
         {
             LogFoundRegister(this.Logger, register);
+            return 0;
         }
-        else
-        {
-            LogDidNotFindRegister(this.Logger);
-        }
+
+        LogDidNotFindRegister(this.Logger);
+        return 1;
     }
 
     /// <summary>

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Synacor.CLI;
+using Synacor.CLI.Run;
 
 Console.Title = "Synacor Challenge";
 
