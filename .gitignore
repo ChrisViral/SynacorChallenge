@@ -60,6 +60,7 @@ nunit-*.xml
 *.DotSettings.user
 *.cmdlineargs.json
 *.vmd
+Challenge/graph.txt
 
 # Claude files
 .claude/
