@@ -76,7 +76,7 @@ public sealed partial class OrbCommand(ILogger<OrbCommand> logger) : ICliRunAsyn
         /// </summary>
         /// <param name="left">Left vector</param>
         /// <param name="right">Right vector</param>
-        /// <returns>The sum of <see cref="left"/> and <see cref="right"/></returns>
+        /// <returns>The sum of <paramref name="left"/> and <paramref name="right"/></returns>
         public static Vector operator +(Vector left, Vector right) => new(left.X + right.X, left.Y + right.Y);
     }
 
