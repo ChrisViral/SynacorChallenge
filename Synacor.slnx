@@ -1,0 +1,20 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Challenge/">
+    <File Path="Challenge/hashes.txt" />
+    <File Path="Challenge/Requirements.md" />
+  </Folder>
+  <Folder Name="/GitHub Actions/">
+    <File Path=".github/workflows/dotnet-build-test.yml" />
+    <File Path=".github/workflows/publish.yml" />
+  </Folder>
+  <Project Path="Synacor.CLI/Synacor.CLI.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="Synacor.Tests/Synacor.Tests.csproj" />
+  <Project Path="Synacor/Synacor.csproj">
+    <Platform Project="x64" />
+  </Project>
+</Solution>
